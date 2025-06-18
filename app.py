@@ -4,7 +4,7 @@ from stylize import stylize_image
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key_change_this"
+app.secret_key = "b89e5c6df135af7794a22eb1e084cd6a2b50d2a9db33e07b78d1975a3fc9a639"
 
 UPLOAD_FOLDER = "uploads"
 OUTPUT_FOLDER = "outputs"
@@ -13,7 +13,7 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # 🔐 Hardcoded users (up to 10)
 USERS = {
-    "admin": "pass123",
+    "admin": "PhotoM1n",
     "user1": "photo1",
     "user2": "photo2",
     "user3": "photo3",
