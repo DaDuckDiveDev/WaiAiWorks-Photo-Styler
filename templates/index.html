@@ -40,4 +40,9 @@
       })
       .catch(err => {
         document.getElementById("uploadStatus").textContent = "Error during upload.";
-
+        console.error("Upload error:", err);
+      });
+    });
+  </script>
+</body>
+</html>
