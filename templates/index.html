@@ -6,9 +6,38 @@
 </head>
 <body>
   <h1>Upload Photo to Stylize in Studio Ghibli Style</h1>
-  <form method="post" enctype="multipart/form-data">
-    <input type="file" name="image" required><br><br>
-    <input type="submit" value="Stylize Image">
+
+  <!-- Form for image upload -->
+  <form id="uploadForm">
+    <input type="file" name="image" id="imageInput" accept="image/*" required><br><br>
   </form>
-</body>
-</html>
+
+  <!-- Status placeholder -->
+  <p id="uploadStatus"></p>
+
+  <script>
+    document.getElementById("imageInput").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      document.getElementById("uploadStatus").textContent = "Uploading...";
+
+      fetch("/upload", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.image_url) {
+          document.getElementById("uploadStatus").textContent = "Upload successful!";
+          console.log("Uploaded image URL:", data.image_url);
+        } else {
+          document.getElementById("uploadStatus").textContent = "Upload failed.";
+        }
+      })
+      .catch(err => {
+        document.getElementById("uploadStatus").textContent = "Error during upload.";
+
