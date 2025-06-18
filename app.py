@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = "b89e5c6df135af7794a22eb1e084cd6a2b50d2a9db33e07b78d1975a3fc9a639"
 
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "static/uploads"
 OUTPUT_FOLDER = "outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -66,6 +66,28 @@ def index():
 
     return render_template("index.html")
 
+@app.route("/upload", methods=["POST"])
+def upload():
+    if "user" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    if "image" not in request.files:
+        return {"error": "No image uploaded"}, 400
+
+    file = request.files["image"]
+    if file.filename == "":
+        return {"error": "No selected file"}, 400
+
+    filename = secure_filename(file.filename)
+    upload_path = os.path.join("static/uploads", filename)
+    os.makedirs("static/uploads", exist_ok=True)
+    file.save(upload_path)
+
+    # Construct public URL for Replicate
+    host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
+    image_url = f"https://{host}/static/uploads/{filename}"
+
+    return {"image_url": image_url}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
