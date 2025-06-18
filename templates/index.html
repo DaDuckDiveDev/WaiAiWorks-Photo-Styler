@@ -27,10 +27,14 @@
       margin-top: 20px;
       max-width: 500px;
     }
+    #downloadBtn {
+      display: none;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Upload Photo to Stylize in Studio Ghibli Style</h1>
+  <h1>Upload Photo to Stylize</h1>
 
   <form id="uploadForm">
     <input type="file" name="image" id="imageInput" accept="image/*" required><br><br>
@@ -42,6 +46,10 @@
 
   <div>
     <img id="outputImage" src="" alt="" />
+    <br>
+    <a id="downloadBtn" href="#" download="stylized.jpg">
+      <button>Download Stylized Image</button>
+    </a>
   </div>
 
   <script>
@@ -56,6 +64,7 @@
 
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("stylizeBtn").style.display = "none";
+      document.getElementById("downloadBtn").style.display = "none";
 
       fetch("/upload", {
         method: "POST",
@@ -92,6 +101,10 @@
         const imageUrl = URL.createObjectURL(blob);
         document.getElementById("outputImage").src = imageUrl;
         document.getElementById("uploadStatus").textContent = "Stylization complete!";
+
+        const downloadLink = document.getElementById("downloadBtn");
+        downloadLink.href = imageUrl;
+        downloadLink.style.display = "inline-block";
       })
       .catch(err => {
         document.getElementById("uploadStatus").textContent = "Stylization failed.";

@@ -77,19 +77,19 @@ def upload():
 @app.route("/stylize", methods=["POST"])
 def stylize():
     if "user" not in session:
-        return {"error": "Unauthorized"}, 401
+        return jsonify({"error": "Unauthorized"}), 401
 
     data = request.get_json()
     image_url = data.get("image_url")
     if not image_url:
-        return {"error": "No image URL provided"}, 400
+        return jsonify({"error": "No image URL provided"}), 400
 
     try:
-        output_path = stylize_image(image_url)  # Function must accept URL input
+        output_path = stylize_image(image_url)  # your function must handle a URL
         return send_file(output_path, mimetype="image/jpeg")
     except Exception as e:
         print("Error in stylize():", e)
-        return {"error": "Stylization failed"}, 500
+        return jsonify({"error": "Stylization failed"}), 500
 
 
 if __name__ == "__main__":
