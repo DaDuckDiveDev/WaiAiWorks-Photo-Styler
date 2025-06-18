@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for, session
+from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify
 import os
-from stylize import stylize_image
+from stylize import stylize_image  # This function must accept an image URL
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -45,26 +45,12 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     if "user" not in session:
         return redirect(url_for("login"))
-
-    if request.method == "POST":
-        if "image" not in request.files:
-            return "No image uploaded", 400
-        file = request.files["image"]
-        if file.filename == "":
-            return "No selected file", 400
-
-        filename = secure_filename(file.filename)
-        input_path = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(input_path)
-
-        output_path = stylize_image(input_path)
-        return send_file(output_path, mimetype="image/jpeg")
-
     return render_template("index.html")
+
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -79,17 +65,33 @@ def upload():
         return {"error": "No selected file"}, 400
 
     filename = secure_filename(file.filename)
-    upload_path = os.path.join("static/uploads", filename)
-    os.makedirs("static/uploads", exist_ok=True)
+    upload_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(upload_path)
 
-    # Construct public URL for Replicate
     host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
     image_url = f"https://{host}/static/uploads/{filename}"
 
-    return {"image_url": image_url}
+    return jsonify({"image_url": image_url})
+
+
+@app.route("/stylize", methods=["POST"])
+def stylize():
+    if "user" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    data = request.get_json()
+    image_url = data.get("image_url")
+    if not image_url:
+        return {"error": "No image URL provided"}, 400
+
+    try:
+        output_path = stylize_image(image_url)  # Function must accept URL input
+        return send_file(output_path, mimetype="image/jpeg")
+    except Exception as e:
+        print("Error in stylize():", e)
+        return {"error": "Stylization failed"}, 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
