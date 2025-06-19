@@ -7,110 +7,157 @@
     body {
       background-color: #d3d3d3;
       font-family: Arial, sans-serif;
-      text-align: center;
       padding: 40px;
     }
     h1 {
+      text-align: center;
       color: #333;
     }
     #uploadStatus {
       margin-top: 20px;
       font-weight: bold;
+      text-align: center;
     }
     #stylizeBtn {
       display: none;
-      margin-top: 20px;
+      margin: 20px auto;
       padding: 10px 20px;
       font-size: 16px;
+      display: block;
     }
-    #outputImage {
-      margin-top: 20px;
-      max-width: 500px;
+    #outputGallery img {
+      max-width: 300px;
+      margin: 10px;
+      display: block;
     }
-    #downloadBtn {
-      display: none;
-      margin-top: 10px;
+    .output-item {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .container {
+      display: flex;
+      gap: 40px;
+      margin-top: 40px;
+    }
+    .left,
+    .right {
+      flex: 1;
+    }
+    .right ul {
+      padding-left: 20px;
     }
   </style>
 </head>
 <body>
   <h1>Upload Photo to Stylize</h1>
 
-  <form id="uploadForm">
-    <input type="file" name="image" id="imageInput" accept="image/*" required><br><br>
-  </form>
+  <div class="container">
+    <!-- Left: Upload area -->
+    <div class="left">
+      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px;">
+        <form id="uploadForm" style="margin: 0;">
+          <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
+        </form>
+        <button id="stylizeBtn">Stylize Images</button>
+      </div>
 
-  <p id="uploadStatus"></p>
+      <p id="uploadStatus"></p>
+      <div id="outputGallery"></div>
+    </div>
 
-  <button id="stylizeBtn">Stylize Image</button>
-
-  <div>
-    <img id="outputImage" src="" alt="" />
-    <br>
-    <a id="downloadBtn" href="#" download="stylized.jpg">
-      <button>Download Stylized Image</button>
-    </a>
+    <!-- Right: Instructions -->
+    <div class="right" style="width: 250px; text-align: left;">
+      <h3>Instructions</h3>
+      <ul>
+        <li>Select 1-10 images using the file picker (hold SHIFT while selecting)</li>
+        <li>Click "Stylize Images" to convert to Ghibli-style.</li>
+        <li>Each result will show with its own download button.</li>
+      </ul>
+      <h3>After Styling</h3>
+        <li>preview all photos to check for errors</li>
+        <li>Select "download all" it will show up on your DOWNLOAD tab on darkroom</li>
+      </ul>
+    </div>
   </div>
+</body>
+
 
   <script>
-    let uploadedImageUrl = null;
+    let uploadedImageUrls = [];
 
     document.getElementById("imageInput").addEventListener("change", function () {
-      const file = this.files[0];
-      if (!file) return;
+      const files = this.files;
+      if (!files.length) return;
 
-      const formData = new FormData();
-      formData.append("image", file);
-
+      uploadedImageUrls = [];
+      document.getElementById("outputGallery").innerHTML = "";
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("stylizeBtn").style.display = "none";
-      document.getElementById("downloadBtn").style.display = "none";
 
-      fetch("/upload", {
-        method: "POST",
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.image_url) {
-          uploadedImageUrl = data.image_url;
+      const formDataArray = Array.from(files).map(file => {
+        const formData = new FormData();
+        formData.append("image", file);
+        return fetch("/upload", {
+          method: "POST",
+          body: formData
+        }).then(res => res.json());
+      });
+
+      Promise.all(formDataArray).then(results => {
+        results.forEach(result => {
+          if (result.image_url) uploadedImageUrls.push(result.image_url);
+        });
+
+        if (uploadedImageUrls.length) {
           document.getElementById("uploadStatus").textContent = "Upload successful!";
-          document.getElementById("stylizeBtn").style.display = "inline-block";
+          document.getElementById("stylizeBtn").style.display = "block";
         } else {
           document.getElementById("uploadStatus").textContent = "Upload failed.";
         }
-      })
-      .catch(err => {
-        document.getElementById("uploadStatus").textContent = "Error during upload.";
+      }).catch(err => {
+        document.getElementById("uploadStatus").textContent = "Upload error.";
         console.error("Upload error:", err);
       });
     });
 
-    document.getElementById("stylizeBtn").addEventListener("click", function () {
-      if (!uploadedImageUrl) return;
+    document.getElementById("stylizeBtn").addEventListener("click", async function () {
+      if (!uploadedImageUrls.length) return;
 
       document.getElementById("uploadStatus").textContent = "Stylizing...";
+      document.getElementById("outputGallery").innerHTML = "";
 
-      fetch("/stylize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_url: uploadedImageUrl })
-      })
-      .then(res => res.blob())
-      .then(blob => {
-        const imageUrl = URL.createObjectURL(blob);
-        document.getElementById("outputImage").src = imageUrl;
-        document.getElementById("uploadStatus").textContent = "Stylization complete!";
+      for (const url of uploadedImageUrls) {
+        try {
+          const res = await fetch("/stylize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image_url: url })
+          });
 
-        const downloadLink = document.getElementById("downloadBtn");
-        downloadLink.href = imageUrl;
-        downloadLink.style.display = "inline-block";
-      })
-      .catch(err => {
-        document.getElementById("uploadStatus").textContent = "Stylization failed.";
-        console.error("Stylization error:", err);
-      });
+          const blob = await res.blob();
+          const imageUrl = URL.createObjectURL(blob);
+
+          const container = document.createElement("div");
+          container.className = "output-item";
+
+          const img = document.createElement("img");
+          img.src = imageUrl;
+
+          const download = document.createElement("a");
+          download.href = imageUrl;
+          download.download = "stylized.jpg";
+          download.innerText = "Download Stylized Image";
+
+          container.appendChild(img);
+          container.appendChild(download);
+          document.getElementById("outputGallery").appendChild(container);
+
+        } catch (err) {
+          console.error("Stylization failed for:", url);
+        }
+      }
+
+      document.getElementById("uploadStatus").textContent = "All stylizations complete!";
     });
   </script>
-</body>
 </html>
