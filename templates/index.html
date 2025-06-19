@@ -63,70 +63,86 @@
 
       <p id="uploadStatus"></p>
       <div id="outputGallery"></div>
+      <button id="downloadAllBtn" style="display: none; margin-top: 20px;">Download All Stylized Images</button>
     </div>
 
     <!-- Right: Instructions -->
     <div class="right" style="width: 250px; text-align: left;">
       <h3>Instructions</h3>
       <ul>
-        <li>Select 1-10 images using the file picker (hold SHIFT while selecting)</li>
+        <li>Select 1-5 images using the file picker (hold SHIFT while selecting)</li>
         <li>Click "Stylize Images" to convert to Ghibli-style.</li>
         <li>Each result will show with its own download button.</li>
       </ul>
       <h3>After Styling</h3>
-        <li>preview all photos to check for errors</li>
-        <li>Select "download all" it will show up on your DOWNLOAD tab on darkroom</li>
-      </ul>
+        <ul>
+          <li>Preview all photos to check for errors</li>
+          <li>Select "Download All" — it will appear in your DOWNLOAD tab on Darkroom</li>
+        </ul>
     </div>
   </div>
 </body>
 
 
   <script>
-    let uploadedImageUrls = [];
+  let uploadedImageUrls = [];
 
-    document.getElementById("imageInput").addEventListener("change", function () {
-      const files = this.files;
-      if (!files.length) return;
+  document.getElementById("imageInput").addEventListener("change", function () {
+    const files = this.files;
+    if (!files.length) return;
 
-      uploadedImageUrls = [];
-      document.getElementById("outputGallery").innerHTML = "";
-      document.getElementById("uploadStatus").textContent = "Uploading...";
-      document.getElementById("stylizeBtn").style.display = "none";
+    if (files.length > 5) {
+      alert("Please select up to 5 images only.");
+      this.value = "";
+      return;
+    }
 
-      const formDataArray = Array.from(files).map(file => {
-        const formData = new FormData();
-        formData.append("image", file);
-        return fetch("/upload", {
-          method: "POST",
-          body: formData
-        }).then(res => res.json());
-      });
+    uploadedImageUrls = [];
+    document.getElementById("outputGallery").innerHTML = "";
+    document.getElementById("uploadStatus").textContent = "Uploading...";
+    document.getElementById("stylizeBtn").style.display = "none";
 
-      Promise.all(formDataArray).then(results => {
-        results.forEach(result => {
-          if (result.image_url) uploadedImageUrls.push(result.image_url);
-        });
-
-        if (uploadedImageUrls.length) {
-          document.getElementById("uploadStatus").textContent = "Upload successful!";
-          document.getElementById("stylizeBtn").style.display = "block";
-        } else {
-          document.getElementById("uploadStatus").textContent = "Upload failed.";
-        }
-      }).catch(err => {
-        document.getElementById("uploadStatus").textContent = "Upload error.";
-        console.error("Upload error:", err);
-      });
+    const formDataArray = Array.from(files).map(file => {
+      const formData = new FormData();
+      formData.append("image", file);
+      return fetch("/upload", {
+        method: "POST",
+        body: formData
+      }).then(res => res.json());
     });
 
-    document.getElementById("stylizeBtn").addEventListener("click", async function () {
-      if (!uploadedImageUrls.length) return;
+    Promise.all(formDataArray).then(results => {
+      results.forEach(result => {
+        if (result.image_url) uploadedImageUrls.push(result.image_url);
+      });
 
-      document.getElementById("uploadStatus").textContent = "Stylizing...";
-      document.getElementById("outputGallery").innerHTML = "";
+      if (uploadedImageUrls.length) {
+        document.getElementById("uploadStatus").textContent = "Upload successful!";
+        document.getElementById("stylizeBtn").style.display = "block";
+      } else {
+        document.getElementById("uploadStatus").textContent = "Upload failed.";
+      }
+    }).catch(err => {
+      document.getElementById("uploadStatus").textContent = "Upload error.";
+      console.error("Upload error:", err);
+    });
+  });
 
-      for (const url of uploadedImageUrls) {
+  document.getElementById("stylizeBtn").addEventListener("click", async function () {
+    if (!uploadedImageUrls.length) return;
+
+    const outputGallery = document.getElementById("outputGallery");
+    document.getElementById("uploadStatus").textContent = "Stylizing images...";
+    document.getElementById("stylizeBtn").disabled = true;
+    outputGallery.innerHTML = "";
+
+    const batchSize = 5;
+
+    for (let i = 0; i < uploadedImageUrls.length; i += batchSize) {
+      const batch = uploadedImageUrls.slice(i, i + batchSize);
+
+      const promises = batch.map(async (url, index) => {
+        const globalIndex = i + index + 1;
         try {
           const res = await fetch("/stylize", {
             method: "POST",
@@ -145,19 +161,46 @@
 
           const download = document.createElement("a");
           download.href = imageUrl;
-          download.download = "stylized.jpg";
+          download.download = `stylized-${globalIndex}.jpg`;
           download.innerText = "Download Stylized Image";
 
           container.appendChild(img);
           container.appendChild(download);
-          document.getElementById("outputGallery").appendChild(container);
-
+          outputGallery.appendChild(container);
         } catch (err) {
-          console.error("Stylization failed for:", url);
+          console.error(`Stylization failed for image ${globalIndex}:`, err);
         }
-      }
+      });
 
-      document.getElementById("uploadStatus").textContent = "All stylizations complete!";
-    });
-  </script>
+      await Promise.all(promises);
+    }
+
+// ... stylizeBtn click handler ends here
+document.getElementById("uploadStatus").textContent = "All stylizations complete!";
+document.getElementById("stylizeBtn").disabled = false;
+document.getElementById("downloadAllBtn").style.display = "block";
+}); // ← END of stylizeBtn click handler
+
+// ✅ Correctly attach Download All click handler once
+document.getElementById("downloadAllBtn").addEventListener("click", () => {
+  const links = document.querySelectorAll("#outputGallery a");
+  if (!links.length) return;
+
+  const downloadBtn = document.getElementById("downloadAllBtn");
+  downloadBtn.disabled = true;
+  document.getElementById("uploadStatus").textContent = "Downloading all images...";
+
+  links.forEach((link, i) => {
+    setTimeout(() => {
+      link.click();
+      if (i === links.length - 1) {
+        document.getElementById("uploadStatus").textContent = "All downloads triggered!";
+        downloadBtn.disabled = false;
+      }
+    }, i * 600); // delay between downloads
+  });
+});
+
+</script>
+
 </html>
