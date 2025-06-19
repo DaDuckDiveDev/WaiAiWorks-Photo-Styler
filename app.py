@@ -14,12 +14,12 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 # 🔐 Hardcoded users (up to 10)
 USERS = {
     "admin": "PhotoM1n",
-    "user1": "photo1",
-    "user2": "photo2",
-    "user3": "photo3",
-    "user4": "photo4",
-    "user5": "photo5",
-    "user6": "photo6",
+    "hardrock": "photoHR",
+    "lulus": "photoLU",
+    "kuhio": "photoKU",
+    "luckystrike": "photoLS",
+    "dave": "photoDB",
+    "dksteak": "photoDK",
     "user7": "photo7",
     "user8": "photo8",
     "user9": "photo9",
