@@ -55,9 +55,9 @@ def ensure_tables_exist():
 
 # Helper: track user actions
 def track_event(username, event_type):
-    stats = UserStats.query.get(username)
+    stats = UserTracking.query.get(username)
     if not stats:
-        stats = UserStats(username=username)
+        stats = UserTracking(username=username)
         db.session.add(stats)
 
     if event_type == "login":
