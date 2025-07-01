@@ -38,7 +38,8 @@ USERS = {
 }
 
 # User tracking model
-class UserStats(db.Model):
+class UserTracking(db.Model):
+    __tablename__ = "user_tracking"
     username = db.Column(db.String(50), primary_key=True)
     uploads = db.Column(db.Integer, default=0)
     downloads = db.Column(db.Integer, default=0)
