@@ -46,9 +46,11 @@ class UserStats(db.Model):
     last_login = db.Column(db.DateTime)
 
 # Create tables
-@app.before_first_request
-def create_tables():
-    db.create_all()
+@app.before_request
+def ensure_tables_exist():
+    if not hasattr(app, 'tables_created'):
+        db.create_all()
+        app.tables_created = True
 
 # Helper: track user actions
 def track_event(username, event_type):
