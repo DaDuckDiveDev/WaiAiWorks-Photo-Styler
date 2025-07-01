@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Ghibli Photo Stylizer</title>
@@ -9,50 +10,60 @@
       font-family: Arial, sans-serif;
       padding: 40px;
     }
+
     h1 {
       text-align: center;
       color: #333;
     }
+
     #uploadStatus {
       margin-top: 20px;
       font-weight: bold;
       text-align: center;
     }
+
     #stylizeBtn {
       display: none;
       margin: 20px auto;
       padding: 10px 20px;
       font-size: 16px;
     }
+
     #outputGallery img {
       max-width: 300px;
       margin: 10px;
       display: block;
     }
+
     .output-item {
       text-align: center;
       margin-bottom: 30px;
     }
+
     .container {
       display: flex;
       gap: 40px;
       margin-top: 40px;
     }
-    .left, .right {
+
+    .left,
+    .right {
       flex: 1;
     }
+
     .right ul {
       padding-left: 20px;
     }
   </style>
 </head>
+
 <body>
   <h1>Upload Photo to Stylize</h1>
 
   <div class="container">
     <div class="left">
       <form id="uploadForm">
-        <input type="file" name="images" id="imageInput" accept="image/*" multiple required>
+        <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
       </form>
       <button id="stylizeBtn">Stylize Images</button>
 
@@ -95,30 +106,39 @@
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("stylizeBtn").style.display = "none";
 
-      const formDataArray = Array.from(files).map(file => {
-        const formData = new FormData();
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
         formData.append("image", file);
-        return fetch("/upload", {
-          method: "POST",
-          body: formData
-        }).then(res => res.json());
       });
 
-      Promise.all(formDataArray).then(results => {
-        results.forEach(result => {
-          if (result.image_url) uploadedImageUrls.push(result.image_url);
+      fetch("/upload", {
+        method: "POST",
+        body: formData
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.image_urls && result.image_urls.length) {
+            uploadedImageUrls = result.image_urls;
+            document.getElementById("uploadStatus").textContent = "Upload successful!";
+            document.getElementById("stylizeBtn").style.display = "block";
+          } else {
+            document.getElementById("uploadStatus").textContent = "Upload failed.";
+          }
+        })
+        .catch(err => {
+          document.getElementById("uploadStatus").textContent = "Upload error.";
+          console.error("Upload error:", err);
         });
 
-        if (uploadedImageUrls.length) {
-          document.getElementById("uploadStatus").textContent = "Upload successful!";
-          document.getElementById("stylizeBtn").style.display = "block";
-        } else {
-          document.getElementById("uploadStatus").textContent = "Upload failed.";
-        }
-      }).catch(err => {
-        document.getElementById("uploadStatus").textContent = "Upload error.";
-        console.error("Upload error:", err);
-      });
+      if (uploadedImageUrls.length) {
+        document.getElementById("uploadStatus").textContent = "Upload successful!";
+        document.getElementById("stylizeBtn").style.display = "block";
+      } else {
+        document.getElementById("uploadStatus").textContent = "Upload failed.";
+      }
+    }).catch(err => {
+      document.getElementById("uploadStatus").textContent = "Upload error.";
+      console.error("Upload error:", err);
     });
 
     document.getElementById("stylizeBtn").addEventListener("click", async function () {
@@ -194,4 +214,5 @@
     });
   </script>
 </body>
+
 </html>

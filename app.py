@@ -96,27 +96,26 @@ def upload():
     if "user" not in session:
         return {"error": "Unauthorized"}, 401
 
-    if "images" not in request.files:
-        return {"error": "No images uploaded"}, 400
+    files = request.files.getlist("image")
+    if not files:
+        return {"error": "No files uploaded"}, 400
 
-    files = request.files.getlist("images")
     uploaded_urls = []
-
     for file in files:
-        if file and file.filename != "":
-            filename = secure_filename(file.filename)
-            upload_path = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(upload_path)
+        if file.filename == "":
+            continue
 
-            # Count each file as one upload
-            track_event(session["user"], "uploads")
+        filename = secure_filename(file.filename)
+        upload_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(upload_path)
 
-            host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
-            image_url = f"https://{host}/static/uploads/{filename}"
-            uploaded_urls.append(image_url)
+        track_event(session["user"], "uploads")
+
+        host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
+        image_url = f"https://{host}/static/uploads/{filename}"
+        uploaded_urls.append(image_url)
 
     return jsonify({"image_urls": uploaded_urls})
-
 @app.route("/stylize", methods=["POST"])
 def stylize():
     if "user" not in session:
