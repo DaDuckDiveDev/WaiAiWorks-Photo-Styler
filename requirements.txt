@@ -2,3 +2,4 @@ flask
 replicate
 requests
 werkzeug
+flask_sqlalchemy
