@@ -1,17 +1,28 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify
-import os
-from stylize import stylize_image  # This function must accept an image URL
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
+from stylize import stylize_image
+from datetime import datetime
+import os
 
+# App setup
 app = Flask(__name__)
 app.secret_key = "b89e5c6df135af7794a22eb1e084cd6a2b50d2a9db33e07b78d1975a3fc9a639"
 
+# Flask config
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Init DB
+db = SQLAlchemy(app)
+
+# File paths
 UPLOAD_FOLDER = "static/uploads"
 OUTPUT_FOLDER = "outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# 🔐 Hardcoded users (up to 10)
+# Hardcoded users
 USERS = {
     "admin": "PhotoM1n",
     "hardrock": "photoHR",
@@ -26,6 +37,33 @@ USERS = {
     "user10": "photo10"
 }
 
+# User tracking model
+class UserStats(db.Model):
+    username = db.Column(db.String(50), primary_key=True)
+    uploads = db.Column(db.Integer, default=0)
+    downloads = db.Column(db.Integer, default=0)
+    stylizations = db.Column(db.Integer, default=0)
+    last_login = db.Column(db.DateTime)
+
+# Create tables
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+# Helper: track user actions
+def track_event(username, event_type):
+    stats = UserStats.query.get(username)
+    if not stats:
+        stats = UserStats(username=username)
+        db.session.add(stats)
+
+    if event_type == "login":
+        stats.last_login = datetime.utcnow()
+    elif hasattr(stats, event_type):
+        setattr(stats, event_type, getattr(stats, event_type) + 1)
+
+    db.session.commit()
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -33,24 +71,22 @@ def login():
         password = request.form["password"]
         if username in USERS and USERS[username] == password:
             session["user"] = username
+            track_event(username, "login")
             return redirect(url_for("index"))
         else:
             return render_template("login.html", error="Invalid username or password.")
     return render_template("login.html")
-
 
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect(url_for("login"))
 
-
 @app.route("/", methods=["GET"])
 def index():
     if "user" not in session:
         return redirect(url_for("login"))
     return render_template("index.html")
-
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -68,11 +104,12 @@ def upload():
     upload_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(upload_path)
 
+    track_event(session["user"], "uploads")
+
     host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
     image_url = f"https://{host}/static/uploads/{filename}"
 
     return jsonify({"image_url": image_url})
-
 
 @app.route("/stylize", methods=["POST"])
 def stylize():
@@ -85,12 +122,12 @@ def stylize():
         return jsonify({"error": "No image URL provided"}), 400
 
     try:
-        output_path = stylize_image(image_url)  # your function must handle a URL
+        output_path = stylize_image(image_url)
+        track_event(session["user"], "stylizations")
         return send_file(output_path, mimetype="image/jpeg")
     except Exception as e:
         print("Error in stylize():", e)
         return jsonify({"error": "Stylization failed"}), 500
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
