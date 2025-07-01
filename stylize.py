@@ -12,11 +12,12 @@ def stylize_image(image_url):
             "black-forest-labs/flux-kontext-pro",
             input={
                 "prompt": (
-                    "A warm, cozy group portrait in the style of a Studio Ghibli film still by Hayao Miyazaki: "
-                    "soft, hand-drawn ink outlines and watercolor brush textures, gentle pastel "
-                    "and muted earth-tone palette, cinematic composition with warm sunset lighting and light film-grain. "
-                    "Preserve every person's original facial features, eye shape/color, hair style/color, skin tones, and the restaurant background "
-                    "exactly as in the source photo"
+                    "A warm and whimsical group portrait in the artistic style of a Studio Ghibli film directed by Hayao Miyazaki. "
+                    "Reimagine only the original people in the image — do not add, duplicate, or invent any extra characters. "
+                    "Preserve the number, position, and identity of all people exactly. Stylize them with expressive Ghibli-style features: "
+                    "large, soulful eyes, gentle blush on cheeks, and flowing, hand-drawn hair. Use clean line art, watercolor textures, and a "
+                    "pastel + earth-tone palette. Loosely stylize the background, adding cozy light and a film-grain finish. "
+                    "Absolutely avoid blur or distortion. Keep the emotional warmth and storytelling charm of a Ghibli scene."
                 ),
                 "input_image": image_url,
                 "aspect_ratio": "match_input_image",

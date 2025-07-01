@@ -116,6 +116,7 @@ def upload():
             uploaded_urls.append(image_url)
 
     return jsonify({"image_urls": uploaded_urls})
+
 @app.route("/stylize", methods=["POST"])
 def stylize():
     if "user" not in session:
@@ -128,11 +129,33 @@ def stylize():
 
     try:
         output_path = stylize_image(image_url)
-        track_event(session["user"], "stylizations")
-        return send_file(output_path, mimetype="image/jpeg")
+        if output_path is None:
+            raise Exception("Stylization failed")
+
+        # Track stylize if you want
+        # track_event(session["user"], "stylizations")
+
+        return jsonify({
+            "output_path": f"static/{output_path}"  # e.g., static/outputs/abc.jpg
+        })
     except Exception as e:
         print("Error in stylize():", e)
         return jsonify({"error": "Stylization failed"}), 500
+    
+@app.route("/track-download")
+def track_download():
+    if "user" not in session:
+        return "Unauthorized", 403
+
+    path = request.args.get("path")
+    if not path or not path.startswith("static/outputs/"):
+        return "Invalid path", 400
+
+    if not os.path.exists(path):
+        return "File not found", 404
+
+    track_event(session["user"], "downloads")
+    return send_file(path, as_attachment=True)
     
 @app.route("/admin/stats")
 def view_stats():
