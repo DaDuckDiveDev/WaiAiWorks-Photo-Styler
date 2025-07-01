@@ -131,6 +131,14 @@ def stylize():
     except Exception as e:
         print("Error in stylize():", e)
         return jsonify({"error": "Stylization failed"}), 500
+    
+@app.route("/admin/stats")
+def view_stats():
+    if session.get("user") != "admin":
+        return "Unauthorized", 403
+
+    stats = UserTracking.query.order_by(UserTracking.username).all()
+    return render_template("stats.html", stats=stats)    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
