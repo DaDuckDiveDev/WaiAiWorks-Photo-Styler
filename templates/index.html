@@ -41,7 +41,7 @@
 
     h1 {
       text-align: center;
-      color: #333;
+      color: var(--sunset-darkpurple);
     }
 
     #uploadStatus {
@@ -50,55 +50,59 @@
       text-align: center;
     }
 
-   #stylizeBtn {
+    #stylizeBtn {
+      font-weight: bold;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      margin: 20px auto;
+      padding: 12px 26px;
+      font-size: 16px;
+      color: white;
+      background-color: rgba(64, 174, 215, 0.85);
+      border: 2px solid white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
 
-  margin: 20px auto;
-  padding: 12px 26px;
-  font-size: 16px;
-  color: white;
-  background-color: rgba(64, 174, 215, 0.85); /* Soft ocean blue */
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  z-index: 1;
-  transition: background-color 0.3s ease;
-}
+    #stylizeBtn::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 10%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0.8);
+      animation: ripple 3s infinite linear;
+      opacity: 0.4;
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 0;
+    }
 
-#stylizeBtn::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-  animation: ripple 3s infinite linear;
-  transform: translate(-50%, -50%);
-  opacity: 0.3;
-  pointer-events: none;
-}
+    @keyframes ripple {
+      0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.4;
+      }
 
-@keyframes ripple {
-  0% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.2);
-    opacity: 0.15;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0.3;
-  }
-}
+      50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.15;
+      }
 
-#stylizeBtn:hover {
-  background-color: rgba(44, 144, 185, 0.9); /* Slightly darker ocean blue */
-}
+      100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.4;
+      }
+    }
 
-
+    #stylizeBtn:hover {
+      background-color: rgba(44, 144, 185, 0.9);
+      /* Slightly darker ocean blue */
+    }
 
     #outputGallery img {
       max-width: 300px;
@@ -118,22 +122,73 @@
     }
 
     .left,
+    .center,
     .right {
       flex: 1;
     }
 
-    .right ul {
-      padding-left: 20px;
+    .center {
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    .left,
+    .right {
+      padding: 0 10px;
+    }
+
+    #horiLogo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+    }
+
+    #horiLogo img {
+      height: 80px;
+      width: auto;
+      border-radius: 8px;
+    }
+
+    input[type="file"] {
+      display: none;
+      /* Hide default file picker */
+    }
+
+    .custom-file-label {
+      font-weight: bold;
+      display: inline-block;
+      padding: 12px 26px;
+      font-size: 16px;
+      color: white;
+      background-color: rgba(64, 174, 215, 0.8);
+      border: 2px solid white;
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      text-align: center;
+    }
+
+    .custom-file-label:hover {
+      background-color: rgba(44, 144, 185, 0.9);
     }
   </style>
 </head>
 
 <body>
+  <div id="horiLogo">
+    <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="horiLogo">
+  </div>
   <h1>Upload Photo to Stylize</h1>
 
   <div class="container">
     <div class="left">
       <form id="uploadForm">
+        <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
         <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
       </form>
       <button id="stylizeBtn">Stylize Images</button>
@@ -142,7 +197,14 @@
       <div id="outputGallery"></div>
       <button id="downloadAllBtn" style="display: none; margin-top: 20px;">Download All Stylized Images</button>
     </div>
-
+    <div class="center">
+      <h3>Instructions</h3>
+      <ul>
+        <li>Select 1-5 images using the file picker (hold SHIFT while selecting)</li>
+        <li>Click "Stylize Images" to convert to Ghibli-style</li>
+        <li>Each result will show with its own download button</li>
+      </ul>
+    </div>
     <div class="right">
       <h3>Instructions</h3>
       <ul>
