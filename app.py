@@ -143,8 +143,8 @@ def stylize():
         # track_event(session["user"], "stylizations")
 
         return jsonify({
-            "output_path": f"static/{output_path}"  # e.g., static/outputs/abc.jpg
-        })
+    "output_path": output_path
+    })
     except Exception as e:
         print("Error in stylize():", e)
         return jsonify({"error": "Stylization failed"}), 500
