@@ -30,7 +30,6 @@ def stylize_image(image_url):
         img_data = requests.get(output_url).content
         with open(output_path, "wb") as f:
             f.write(img_data)
-
         return output_path
     except Exception as e:
         print(f"Error in stylize_image: {e}")

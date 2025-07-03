@@ -18,7 +18,7 @@ db = SQLAlchemy(app)
 
 # File paths
 UPLOAD_FOLDER = "static/uploads"
-OUTPUT_FOLDER = "outputs"
+OUTPUT_FOLDER = "static/outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
