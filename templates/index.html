@@ -5,8 +5,36 @@
   <meta charset="UTF-8">
   <title>Ghibli Photo Stylizer</title>
   <style>
+    :root {
+      --sunset-darkpurple: #4b2354;
+      --sunset-purple: #873e75;
+      --sunset-coralorange: #ff6b3d;
+      --sunset-orangeglow: #ff7a5c;
+      --sunset-peach: #f7b267;
+      --sunset-gold: #fbd786;
+      --sunset-yellow: #ffeaa7;
+      --sunset-sky: #a0d8ef;
+      --sunset-blue: #7fc9f8;
+      --ocean-deep: #1e3c72;
+    }
+
     body {
-      background-color: #d3d3d3;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(to bottom,
+          var(--sunset-darkpurple) 0%,
+          var(--sunset-purple) 8%,
+          var(--sunset-coralorange) 16%,
+          var(--sunset-orangeglow) 28%,
+          var(--sunset-peach) 40%,
+          var(--sunset-gold) 52%,
+          var(--sunset-yellow) 64%,
+          var(--sunset-sky) 76%,
+          var(--sunset-blue) 88%,
+          var(--ocean-deep) 100%);
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
       font-family: Arial, sans-serif;
       padding: 40px;
     }
@@ -22,12 +50,55 @@
       text-align: center;
     }
 
-    #stylizeBtn {
-      display: none;
-      margin: 20px auto;
-      padding: 10px 20px;
-      font-size: 16px;
-    }
+   #stylizeBtn {
+
+  margin: 20px auto;
+  padding: 12px 26px;
+  font-size: 16px;
+  color: white;
+  background-color: rgba(64, 174, 215, 0.85); /* Soft ocean blue */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: background-color 0.3s ease;
+}
+
+#stylizeBtn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  animation: ripple 3s infinite linear;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.15;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.3;
+  }
+}
+
+#stylizeBtn:hover {
+  background-color: rgba(44, 144, 185, 0.9); /* Slightly darker ocean blue */
+}
+
+
 
     #outputGallery img {
       max-width: 300px;
@@ -91,45 +162,45 @@
   <script>
     let uploadedImageUrls = [];
 
-document.getElementById("imageInput").addEventListener("change", function () {
-  const files = this.files;
-  if (!files.length) return;
+    document.getElementById("imageInput").addEventListener("change", function () {
+      const files = this.files;
+      if (!files.length) return;
 
-  if (files.length > 5) {
-    alert("Please select up to 5 images only.");
-    this.value = "";
-    return;
-  }
-
-  uploadedImageUrls = [];
-  document.getElementById("outputGallery").innerHTML = "";
-  document.getElementById("uploadStatus").textContent = "Uploading...";
-  document.getElementById("stylizeBtn").style.display = "none";
-
-  const formData = new FormData();
-  Array.from(files).forEach(file => {
-    formData.append("image", file);
-  });
-
-  fetch("/upload", {
-    method: "POST",
-    body: formData
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (result.image_urls && result.image_urls.length) {
-        uploadedImageUrls = result.image_urls;
-        document.getElementById("uploadStatus").textContent = "Upload successful!";
-        document.getElementById("stylizeBtn").style.display = "block";
-      } else {
-        document.getElementById("uploadStatus").textContent = "Upload failed.";
+      if (files.length > 5) {
+        alert("Please select up to 5 images only.");
+        this.value = "";
+        return;
       }
-    })
-    .catch(err => {
-      document.getElementById("uploadStatus").textContent = "Upload error.";
-      console.error("Upload error:", err);
+
+      uploadedImageUrls = [];
+      document.getElementById("outputGallery").innerHTML = "";
+      document.getElementById("uploadStatus").textContent = "Uploading...";
+      document.getElementById("stylizeBtn").style.display = "none";
+
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append("image", file);
+      });
+
+      fetch("/upload", {
+        method: "POST",
+        body: formData
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.image_urls && result.image_urls.length) {
+            uploadedImageUrls = result.image_urls;
+            document.getElementById("uploadStatus").textContent = "Upload successful!";
+            document.getElementById("stylizeBtn").style.display = "block";
+          } else {
+            document.getElementById("uploadStatus").textContent = "Upload failed.";
+          }
+        })
+        .catch(err => {
+          document.getElementById("uploadStatus").textContent = "Upload error.";
+          console.error("Upload error:", err);
+        });
     });
-});
 
 
     document.getElementById("stylizeBtn").addEventListener("click", async function () {
