@@ -19,14 +19,17 @@ def stylize_image(image_url, style):
             )
         elif style == "pixar":
             prompt = (
-                "Transform this photo into a Pixar-style 3D animated character portrait. Reimagine only the original people in the image — "
-                "do not add or invent new characters. Preserve facial features, skin tone, hairstyle, and expression. "
-                "Use large expressive eyes, detailed Pixar-style skin and hair textures, soft global lighting, and a vibrant, cinematic color palette. "
-                "The result should feel like a still frame from a modern Pixar film — playful, heartwarming, and emotionally rich."
+                "Turn this photo into a Pixar-style 3D animated character portrait. "
+                "Keep all the original people in the image — do not add, remove, or duplicate any individuals. "
+                "Preserve each person's facial features, skin tone, hair style, and expression. "
+                "Use soft lighting, detailed Pixar-style textures, large expressive eyes, and a vibrant color palette. "
+                "The style should resemble a modern Pixar movie, with cinematic depth-of-field, emotional warmth, "
+                "and a playful, heartwarming feel."
             )
         elif style == "comic":
             prompt = (
                 "A dramatic, high-contrast comic book illustration of the original people in the photo. "
+                "do not add, remove, or duplicate any individuals. "
                 "Maintain all facial features, skin tones, and body positions exactly. "
                 "Apply bold black ink outlines, vibrant cel-shaded coloring, and halftone texture details. "
                 "Use sharp lighting and stylized shadows to create dynamic comic panel energy. "
@@ -37,6 +40,7 @@ def stylize_image(image_url, style):
             prompt = (
                 "Transform this photo into the elegant and dreamy style of a Disney animated princess movie. "
                 "Keep all original people and preserve their facial features, skin tone, and expressions. "
+                "do not add, remove, or duplicate any individuals. "
                 "Use soft glowing light, gentle watercolor-style shading, and flowing outlines. "
                 "Add pastel color palettes and romantic fantasy atmosphere typical of Disney princess films. "
                 "Do not add any new characters or distort the original ones."
