@@ -91,55 +91,46 @@
   <script>
     let uploadedImageUrls = [];
 
-    document.getElementById("imageInput").addEventListener("change", function () {
-      const files = this.files;
-      if (!files.length) return;
+document.getElementById("imageInput").addEventListener("change", function () {
+  const files = this.files;
+  if (!files.length) return;
 
-      if (files.length > 5) {
-        alert("Please select up to 5 images only.");
-        this.value = "";
-        return;
-      }
+  if (files.length > 5) {
+    alert("Please select up to 5 images only.");
+    this.value = "";
+    return;
+  }
 
-      uploadedImageUrls = [];
-      document.getElementById("outputGallery").innerHTML = "";
-      document.getElementById("uploadStatus").textContent = "Uploading...";
-      document.getElementById("stylizeBtn").style.display = "none";
+  uploadedImageUrls = [];
+  document.getElementById("outputGallery").innerHTML = "";
+  document.getElementById("uploadStatus").textContent = "Uploading...";
+  document.getElementById("stylizeBtn").style.display = "none";
 
-      const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append("image", file);
-      });
+  const formData = new FormData();
+  Array.from(files).forEach(file => {
+    formData.append("image", file);
+  });
 
-      fetch("/upload", {
-        method: "POST",
-        body: formData
-      })
-        .then(res => res.json())
-        .then(result => {
-          if (result.image_urls && result.image_urls.length) {
-            uploadedImageUrls = result.image_urls;
-            document.getElementById("uploadStatus").textContent = "Upload successful!";
-            document.getElementById("stylizeBtn").style.display = "block";
-          } else {
-            document.getElementById("uploadStatus").textContent = "Upload failed.";
-          }
-        })
-        .catch(err => {
-          document.getElementById("uploadStatus").textContent = "Upload error.";
-          console.error("Upload error:", err);
-        });
-
-      if (uploadedImageUrls.length) {
+  fetch("/upload", {
+    method: "POST",
+    body: formData
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (result.image_urls && result.image_urls.length) {
+        uploadedImageUrls = result.image_urls;
         document.getElementById("uploadStatus").textContent = "Upload successful!";
         document.getElementById("stylizeBtn").style.display = "block";
       } else {
         document.getElementById("uploadStatus").textContent = "Upload failed.";
       }
-    }).catch(err => {
+    })
+    .catch(err => {
       document.getElementById("uploadStatus").textContent = "Upload error.";
       console.error("Upload error:", err);
     });
+});
+
 
     document.getElementById("stylizeBtn").addEventListener("click", async function () {
       if (!uploadedImageUrls.length) return;
