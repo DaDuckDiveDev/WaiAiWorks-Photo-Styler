@@ -52,6 +52,7 @@
 
     #stylizeBtn {
       font-weight: bold;
+      display: none;
       position: relative;
       overflow: hidden;
       z-index: 1;
@@ -176,6 +177,31 @@
     .custom-file-label:hover {
       background-color: rgba(44, 144, 185, 0.9);
     }
+
+    .stylizeBtn.active {
+      outline: 2px solid white;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .loader {
+      border: 6px solid rgba(255, 255, 255, 0.3);
+      border-top: 6px solid white;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 
@@ -191,9 +217,16 @@
         <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
         <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
       </form>
-      <button id="stylizeBtn">Stylize Images</button>
+      <div id="styleButtons">
+        <button class="stylizeBtn" data-style="ghibli">🎨 Ghibli Style</button>
+        <button class="stylizeBtn" data-style="pixar">🧸 Pixar Style</button>
+        <button class="stylizeBtn" data-style="comic">🦸 Comic Style</button> <!-- Placeholder for future -->
+      </div>
 
       <p id="uploadStatus"></p>
+      <div id="spinner" style="display: none; text-align: center; margin-top: 10px;">
+        <div class="loader"></div>
+      </div>
       <div id="outputGallery"></div>
       <button id="downloadAllBtn" style="display: none; margin-top: 20px;">Download All Stylized Images</button>
     </div>
@@ -237,7 +270,7 @@
       uploadedImageUrls = [];
       document.getElementById("outputGallery").innerHTML = "";
       document.getElementById("uploadStatus").textContent = "Uploading...";
-      document.getElementById("stylizeBtn").style.display = "none";
+      document.getElementById("spinner").style.display = "block";//spin om
 
       const formData = new FormData();
       Array.from(files).forEach(file => {
@@ -250,72 +283,81 @@
       })
         .then(res => res.json())
         .then(result => {
+          document.getElementById("spinner").style.display = "none";//spin off
           if (result.image_urls && result.image_urls.length) {
             uploadedImageUrls = result.image_urls;
             document.getElementById("uploadStatus").textContent = "Upload successful!";
-            document.getElementById("stylizeBtn").style.display = "block";
           } else {
             document.getElementById("uploadStatus").textContent = "Upload failed.";
           }
         })
         .catch(err => {
+          document.getElementById("spinner").style.display = "none";//and on error
           document.getElementById("uploadStatus").textContent = "Upload error.";
           console.error("Upload error:", err);
         });
     });
+    document.querySelectorAll(".stylizeBtn").forEach(button => {
+      button.addEventListener("click", async function () {
+        document.querySelectorAll(".stylizeBtn").forEach(btn => btn.classList.remove("active"));
+        this.classList.add("active");
+        const selectedStyle = this.getAttribute("data-style");
 
+        // 🔒 Disable all style buttons during processing
+        document.querySelectorAll(".stylizeBtn").forEach(btn => btn.disabled = true);
 
-    document.getElementById("stylizeBtn").addEventListener("click", async function () {
-      if (!uploadedImageUrls.length) return;
+        if (!uploadedImageUrls.length) return;
 
-      const outputGallery = document.getElementById("outputGallery");
-      document.getElementById("uploadStatus").textContent = "Stylizing images...";
-      document.getElementById("stylizeBtn").disabled = true;
-      outputGallery.innerHTML = "";
+        const outputGallery = document.getElementById("outputGallery");
+        document.getElementById("uploadStatus").textContent = `Stylizing images (${selectedStyle})...`;
+        outputGallery.innerHTML = "";
 
-      const batchSize = 5;
+        const batchSize = 5;
 
-      for (let i = 0; i < uploadedImageUrls.length; i += batchSize) {
-        const batch = uploadedImageUrls.slice(i, i + batchSize);
+        for (let i = 0; i < uploadedImageUrls.length; i += batchSize) {
+          const batch = uploadedImageUrls.slice(i, i + batchSize);
 
-        const promises = batch.map(async (url, index) => {
-          const globalIndex = i + index + 1;
-          try {
-            const res = await fetch("/stylize", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ image_url: url })
-            });
+          const promises = batch.map(async (url, index) => {
+            const globalIndex = i + index + 1;
+            try {
+              const res = await fetch("/stylize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image_url: url, style: selectedStyle })
+              });
 
-            const result = await res.json();
-            const serverPath = result.output_path;
-            const imageUrl = "/" + serverPath;
+              const result = await res.json();
+              const serverPath = result.output_path;
+              const imageUrl = "/" + serverPath;
 
-            const container = document.createElement("div");
-            container.className = "output-item";
+              const container = document.createElement("div");
+              container.className = "output-item";
 
-            const img = document.createElement("img");
-            img.src = imageUrl;
+              const img = document.createElement("img");
+              img.src = imageUrl;
 
-            const download = document.createElement("a");
-            download.href = `/track-download?path=${serverPath}`;
-            download.download = `stylized-${globalIndex}.jpg`;
-            download.innerText = "Download Stylized Image";
+              const download = document.createElement("a");
+              download.href = `/track-download?path=${serverPath}`;
+              download.download = `stylized-${selectedStyle}-${globalIndex}.jpg`;
+              download.innerText = "Download Stylized Image";
 
-            container.appendChild(img);
-            container.appendChild(download);
-            outputGallery.appendChild(container);
-          } catch (err) {
-            console.error(`Stylization failed for image ${globalIndex}:`, err);
-          }
-        });
+              container.appendChild(img);
+              container.appendChild(download);
+              outputGallery.appendChild(container);
+            } catch (err) {
+              console.error(`Stylization failed for image ${globalIndex}:`, err);
+            }
+          });
 
-        await Promise.all(promises);
-      }
+          await Promise.all(promises);
+        }
 
-      document.getElementById("uploadStatus").textContent = "All stylizations complete!";
-      document.getElementById("stylizeBtn").disabled = false;
-      document.getElementById("downloadAllBtn").style.display = "block";
+        document.getElementById("uploadStatus").textContent = "All stylizations complete!";
+        document.getElementById("downloadAllBtn").style.display = "block";
+        // ✅ Re-enable buttons after processing
+        document.querySelectorAll(".stylizeBtn").forEach(btn => btn.disabled = false);
+      });
+
     });
 
     document.getElementById("downloadAllBtn").addEventListener("click", () => {
