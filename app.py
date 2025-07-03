@@ -139,9 +139,6 @@ def stylize():
         if output_path is None:
             raise Exception("Stylization failed")
 
-        # Track stylize if you want
-        # track_event(session["user"], "stylizations")
-
         return jsonify({
     "output_path": output_path
     })

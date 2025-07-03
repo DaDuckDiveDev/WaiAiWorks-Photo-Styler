@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Ghibli Photo Stylizer</title>
+  <title>AI Photo Stylizer</title>
   <style>
     :root {
       --sunset-darkpurple: #4b2354;
@@ -48,61 +48,6 @@
       margin-top: 20px;
       font-weight: bold;
       text-align: center;
-    }
-
-    #stylizeBtn {
-      font-weight: bold;
-      display: none;
-      position: relative;
-      overflow: hidden;
-      z-index: 1;
-      margin: 20px auto;
-      padding: 12px 26px;
-      font-size: 16px;
-      color: white;
-      background-color: rgba(64, 174, 215, 0.85);
-      border: 2px solid white;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    #stylizeBtn::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 10%, transparent 70%);
-      transform: translate(-50%, -50%) scale(0.8);
-      animation: ripple 3s infinite linear;
-      opacity: 0.4;
-      pointer-events: none;
-      border-radius: 50%;
-      z-index: 0;
-    }
-
-    @keyframes ripple {
-      0% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 0.4;
-      }
-
-      50% {
-        transform: translate(-50%, -50%) scale(1.2);
-        opacity: 0.15;
-      }
-
-      100% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 0.4;
-      }
-    }
-
-    #stylizeBtn:hover {
-      background-color: rgba(44, 144, 185, 0.9);
-      /* Slightly darker ocean blue */
     }
 
     #outputGallery img {
@@ -180,7 +125,7 @@
 
     .stylizeBtn.active {
       outline: 2px solid white;
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba(64, 174, 215, 0.95);
     }
 
     .loader {
@@ -202,25 +147,69 @@
         transform: rotate(360deg);
       }
     }
+
+    .stylizeBtn {
+      font-weight: bold;
+      display: none;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      margin: 20px auto;
+      padding: 12px 26px;
+      font-size: 16px;
+      color: white;
+      background-color: rgba(64, 174, 215, 0.85);
+      border: 2px solid white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .stylizeBtn:hover {
+      background-color: rgba(44, 144, 185, 0.9);
+    }
+
+    .stylizeBtn::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 10%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0.8);
+      animation: ripple 3s infinite linear;
+      opacity: 0.4;
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 0;
+    }
   </style>
 </head>
 
 <body>
-  <div id="horiLogo">
-    <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="horiLogo">
+  <div id="horiLogo" style="display: flex; align-items: center; gap: 16px;">
+  <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="horiLogo">
+  <div style="color: white; font-weight: bold;">
+    Welcome,<br>
+    {{ username }}
   </div>
+</div>
   <h1>Upload Photo to Stylize</h1>
 
   <div class="container">
     <div class="left">
+      <div style="display: flex; justify-content: center;">
       <form id="uploadForm">
         <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
         <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
       </form>
+      </div>
       <div id="styleButtons">
-        <button class="stylizeBtn" data-style="ghibli">🎨 Ghibli Style</button>
+        <button class="stylizeBtn" data-style="anime">🎨 Anime Style</button>
         <button class="stylizeBtn" data-style="pixar">🧸 Pixar Style</button>
-        <button class="stylizeBtn" data-style="comic">🦸 Comic Style</button> <!-- Placeholder for future -->
+        <button class="stylizeBtn" data-style="comic">🦸 Comic Style</button> 
+        <button class="stylizeBtn" data-style="disney">👓Disney Style</button> 
       </div>
 
       <p id="uploadStatus"></p>

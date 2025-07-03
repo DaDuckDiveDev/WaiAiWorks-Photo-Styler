@@ -8,7 +8,7 @@ client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
 def stylize_image(image_url, style):
     try:
-        if style == "ghibli":
+        if style == "anime":
             prompt = (
                 "A warm and whimsical group portrait in the artistic style of a Studio Ghibli film directed by Hayao Miyazaki. "
                 "Reimagine only the original people in the image — do not add, duplicate, or invent any extra characters. "
@@ -33,6 +33,14 @@ def stylize_image(image_url, style):
                 "Background should be simplified with action-line or comic blur effects. "
                 "Avoid blur or smudging — keep linework clean and colors poppy like classic Marvel/DC comics."
             )
+        elif style == "disney":
+            prompt = (
+                "Transform this photo into the elegant and dreamy style of a Disney animated princess movie. "
+                "Keep all original people and preserve their facial features, skin tone, and expressions. "
+                "Use soft glowing light, gentle watercolor-style shading, and flowing outlines. "
+                "Add pastel color palettes and romantic fantasy atmosphere typical of Disney princess films. "
+                "Do not add any new characters or distort the original ones."
+            )    
         else:
             raise ValueError("Unsupported style")
 
