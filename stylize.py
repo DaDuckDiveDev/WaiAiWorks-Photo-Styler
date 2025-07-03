@@ -26,7 +26,7 @@ def stylize_image(image_url):
             }
         )
 
-        output_path = os.path.join("outputs", f"{uuid.uuid4()}.jpg")
+        output_path = os.path.join("static", "outputs", f"{uuid.uuid4()}.jpg")
         img_data = requests.get(output_url).content
         with open(output_path, "wb") as f:
             f.write(img_data)
