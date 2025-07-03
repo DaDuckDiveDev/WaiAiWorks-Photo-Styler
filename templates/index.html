@@ -150,7 +150,6 @@
 
     .stylizeBtn {
       font-weight: bold;
-      display: none;
       position: relative;
       overflow: hidden;
       z-index: 1;
@@ -189,27 +188,27 @@
 
 <body>
   <div id="horiLogo" style="display: flex; align-items: center; gap: 16px;">
-  <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="horiLogo">
-  <div style="color: white; font-weight: bold;">
-    Welcome,<br>
-    {{ username }}
+    <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="horiLogo">
+    <div style="color: white; font-weight: bold;">
+      Welcome,<br>
+      {{ username }}
+    </div>
   </div>
-</div>
   <h1>Upload Photo to Stylize</h1>
 
   <div class="container">
     <div class="left">
       <div style="display: flex; justify-content: center;">
-      <form id="uploadForm">
-        <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
-        <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
-      </form>
+        <form id="uploadForm">
+          <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
+          <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
+        </form>
       </div>
       <div id="styleButtons">
         <button class="stylizeBtn" data-style="anime">🎨 Anime Style</button>
         <button class="stylizeBtn" data-style="pixar">🧸 Pixar Style</button>
-        <button class="stylizeBtn" data-style="comic">🦸 Comic Style</button> 
-        <button class="stylizeBtn" data-style="disney">👓Disney Style</button> 
+        <button class="stylizeBtn" data-style="comic">🦸 Comic Style</button>
+        <button class="stylizeBtn" data-style="disney">👓Disney Style</button>
       </div>
 
       <p id="uploadStatus"></p>
@@ -276,6 +275,12 @@
           if (result.image_urls && result.image_urls.length) {
             uploadedImageUrls = result.image_urls;
             document.getElementById("uploadStatus").textContent = "Upload successful!";
+
+            // 🔓 SHOW stylize buttons after successful upload
+            document.querySelectorAll(".stylizeBtn").forEach(btn => {
+              btn.style.display = "block";
+            });
+
           } else {
             document.getElementById("uploadStatus").textContent = "Upload failed.";
           }
