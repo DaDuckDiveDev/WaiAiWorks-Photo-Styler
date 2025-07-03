@@ -131,17 +131,19 @@ def stylize():
 
     data = request.get_json()
     image_url = data.get("image_url")
-    if not image_url:
-        return jsonify({"error": "No image URL provided"}), 400
+    style = data.get("style")  # 🔥 Make sure you grab the style!
+
+    if not image_url or not style:
+        return jsonify({"error": "Missing image URL or style"}), 400
 
     try:
-        output_path = stylize_image(image_url)
+        output_path = stylize_image(image_url, style)  # 🔧 Pass the style here
         if output_path is None:
             raise Exception("Stylization failed")
 
-        return jsonify({
-    "output_path": output_path
-    })
+        track_event(session["user"], "stylizations")  # ✅ Track stylization count
+        return jsonify({ "output_path": output_path })
+
     except Exception as e:
         print("Error in stylize():", e)
         return jsonify({"error": "Stylization failed"}), 500
