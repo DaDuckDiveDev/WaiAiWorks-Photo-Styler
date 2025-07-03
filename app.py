@@ -89,7 +89,7 @@ def logout():
 def index():
     if "user" not in session:
         return redirect(url_for("login"))
-    return render_template("index.html")
+    return render_template("index.html", username=session.get("user"))
 
 @app.route("/upload", methods=["POST"])
 def upload():
