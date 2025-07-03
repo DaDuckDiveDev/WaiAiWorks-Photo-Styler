@@ -1,22 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaiAI Works Login</title>
   <style>
-    body { text-align: center; margin-top: 100px; font-family: sans-serif; }
-    input { margin: 5px; padding: 10px; }
-    .error { color: red; }
+    :root {
+      --sunset-darkpurple: #4b2354;
+      --sunset-purple: #873e75;
+      --sunset-coralorange: #ff6b3d;
+      --sunset-orangeglow: #ff7a5c;
+      /* replaces pink */
+      --sunset-peach: #f7b267;
+      --sunset-gold: #fbd786;
+      --sunset-yellow: #ffeaa7;
+      --sunset-sky: #a0d8ef;
+      --sunset-blue: #7fc9f8;
+      --ocean-deep: #1e3c72;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to bottom,
+          var(--sunset-darkpurple) 0%,
+          var(--sunset-purple) 8%,
+          var(--sunset-coralorange) 16%,
+          var(--sunset-orangeglow) 28%,
+          /* replaces the old pink */
+          var(--sunset-peach) 40%,
+          var(--sunset-gold) 52%,
+          var(--sunset-yellow) 64%,
+          var(--sunset-sky) 76%,
+          var(--sunset-blue) 88%,
+          var(--ocean-deep) 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .content-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo {
+      margin-bottom: 30px;
+    }
+
+    .logo img {
+      width: 350px;
+      max-width: 100%;
+    }
+
+    .login-container {
+      background-color: rgba(255, 255, 255, 0.75);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+      text-align: center;
+    }
+
+    form {
+      width: 100%;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      display: block;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: var(--sunset-blue);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #357ab7;
+    }
+
+    .error {
+      color: red;
+      margin-bottom: 10px;
+      text-align: center;
+    }
   </style>
 </head>
+
 <body>
-  <h2>Restuarant login</h2>
-  {% if error %}
-    <p class="error">{{ error }}</p>
-  {% endif %}
-  <form method="POST">
-    <input type="text" name="username" placeholder="Username" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button type="submit">Login</button>
-  </form>
+  <div class="content-wrapper">
+    <div class="logo">
+      <img src="static/images/waiaiLogo.png" alt="WaiAI Works Logo">
+    </div>
+
+    <div class="login-container">
+      <h2>WaiAI Works – Restaurant Login</h2>
+
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %}
+
+      <form method="POST">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  </div>
 </body>
+
 </html>
