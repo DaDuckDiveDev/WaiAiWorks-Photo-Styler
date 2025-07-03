@@ -97,6 +97,9 @@ def upload():
         return {"error": "Unauthorized"}, 401
 
     files = request.files.getlist("image")
+    if not files or files == [None]:
+        files = list(request.files.values())  # Fallback in case getlist doesn't work
+
     if not files:
         return {"error": "No files uploaded"}, 400
 
@@ -109,6 +112,9 @@ def upload():
         upload_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(upload_path)
 
+        # Optional for debugging
+        print(f"Saved file: {upload_path}")
+
         track_event(session["user"], "uploads")
 
         host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
@@ -116,6 +122,8 @@ def upload():
         uploaded_urls.append(image_url)
 
     return jsonify({"image_urls": uploaded_urls})
+
+
 @app.route("/stylize", methods=["POST"])
 def stylize():
     if "user" not in session:
