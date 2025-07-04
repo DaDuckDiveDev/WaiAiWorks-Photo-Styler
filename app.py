@@ -54,7 +54,7 @@ def ensure_tables_exist():
         app.tables_created = True
 
 # Helper: track user actions
-def track_event(username, event_type):
+def track_event(username, event_type, count=1):
     stats = UserTracking.query.get(username)
     if not stats:
         stats = UserTracking(username=username)
@@ -63,7 +63,8 @@ def track_event(username, event_type):
     if event_type == "login":
         stats.last_login = datetime.utcnow()
     elif hasattr(stats, event_type):
-        setattr(stats, event_type, getattr(stats, event_type) + 1)
+        current = getattr(stats, event_type) or 0
+        setattr(stats, event_type, current + count)
 
     db.session.commit()
 
@@ -104,6 +105,8 @@ def upload():
         return {"error": "No files uploaded"}, 400
 
     uploaded_urls = []
+    upload_count = 0
+    
     for file in files:
         if file.filename == "":
             continue
@@ -111,7 +114,7 @@ def upload():
         filename = secure_filename(file.filename)
         upload_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(upload_path)
-
+        upload_count += 1
         # Optional for debugging
         print(f"Saved file: {upload_path}")
 
@@ -130,23 +133,28 @@ def stylize():
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.get_json()
-    image_url = data.get("image_url")
-    style = data.get("style")  # 🔥 Make sure you grab the style!
+    image_urls = data.get("image_urls")
+    style = data.get("style")
 
-    if not image_url or not style:
-        return jsonify({"error": "Missing image URL or style"}), 400
+    if not image_urls or not style:
+        return jsonify({"error": "Missing image URLs or style"}), 400
 
-    try:
-        output_path = stylize_image(image_url, style)  # 🔧 Pass the style here
-        if output_path is None:
-            raise Exception("Stylization failed")
+    results = []
+    count = 0
 
-        track_event(session["user"], "stylizations")  # ✅ Track stylization count
-        return jsonify({ "output_path": output_path })
+    for url in image_urls:
+        try:
+            output_path = stylize_image(url, style)
+            if output_path:
+                results.append({"input": url, "output_path": output_path})
+                count += 1
+        except Exception as e:
+            print(f"Stylization error for {url}: {e}")
 
-    except Exception as e:
-        print("Error in stylize():", e)
-        return jsonify({"error": "Stylization failed"}), 500
+    if count > 0:
+        track_event(session["user"], "stylizations", count=count)
+
+    return jsonify({"stylized": results})
     
 @app.route("/track-download")
 def track_download():
