@@ -4,6 +4,14 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, date
 from stylize import stylize_image
 import os
+import smtplib
+from email.message import EmailMessage
+from flask import request
+from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+load_dotenv()
 
 # App setup
 app = Flask(__name__)
@@ -209,6 +217,42 @@ def view_stats():
 
     stats = UserTracking.query.order_by(UserTracking.username).all()
     return render_template("stats.html", stats=stats)    
+
+@app.route("/send-report", methods=["POST"])
+def send_report():
+    if "user" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    message_body = data.get("message")
+    user = session["user"]
+
+    if not message_body:
+        return jsonify({"error": "Empty message"}), 400
+
+    email_user = os.environ.get("EMAIL_USER")
+    email_pass = os.environ.get("EMAIL_PASS")
+    email_to = os.environ.get("EMAIL_RECEIVER") or email_user
+
+    msg = MIMEMultipart()
+    msg["From"] = email_user
+    msg["To"] = email_to
+    msg["Subject"] = f"📣 New Stylizer Report from {user}"
+
+    body = f"User: {user}\n\nMessage:\n{message_body}"
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(email_user, email_pass)
+        server.sendmail(email_user, email_to, msg.as_string())
+        server.quit()
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Email send error: {e}")
+        return jsonify({"error": "Failed to send email"}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
