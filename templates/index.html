@@ -201,91 +201,90 @@
     }
 
     /* Support buttons */
-#supportButtons {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 100;
-}
+    #supportButtons {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 100;
+    }
 
-.support-btn {
-  background-color: rgba(64, 174, 215, 0.85);
-  border: 2px solid white;
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
-  padding: 10px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
+    .support-btn {
+      background-color: rgba(64, 174, 215, 0.85);
+      border: 2px solid white;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
 
-.support-btn:hover {
-  background-color: rgba(44, 144, 185, 0.95);
-}
+    .support-btn:hover {
+      background-color: rgba(44, 144, 185, 0.95);
+    }
 
-/* Modal styling */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 200;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.6);
-}
+    /* Modal styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 200;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.6);
+    }
 
-.modal-content {
-  background-color: #fff;
-  margin: 10% auto;
-  padding: 20px;
-  width: 90%;
-  max-width: 400px;
-  border-radius: 8px;
-}
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+    }
 
-.close-btn {
-  color: #aaa;
-  float: right;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-}
+    .close-btn {
+      color: #aaa;
+      float: right;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-.close-btn:hover {
-  color: black;
-}
+    .close-btn:hover {
+      color: black;
+    }
 
-#supportForm input,
-#supportForm textarea {
-  width: 100%;
-  padding: 10px;
-  font-size: 14px;
-  margin-top: 4px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
+    #supportForm input,
+    #supportForm textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      margin-top: 4px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
 
-#supportForm button {
-  margin-top: 12px;
-  padding: 10px 16px;
-  background-color: rgba(64, 174, 215, 0.85);
-  border: none;
-  color: white;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-}
+    #supportForm button {
+      margin-top: 12px;
+      padding: 10px 16px;
+      background-color: rgba(64, 174, 215, 0.85);
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
 
-#supportForm button:hover {
-  background-color: rgba(44, 144, 185, 0.95);
-}
-
+    #supportForm button:hover {
+      background-color: rgba(44, 144, 185, 0.95);
+    }
   </style>
 </head>
 
@@ -350,6 +349,7 @@
         <li>Avoid groups with 6+ people unless its very detailed and up close (risk of fail render)</li>
         <li>Make sure photos are crisp and not blurry</li>
         <li>Your Photos will be on the DOWNLOADS tab in DarkRoom</li>
+        <li>In rare cases program might generate an extra person-> Use different theme</li>
       </ul>
     </div>
   </div>
@@ -433,6 +433,7 @@
 
           const result = await res.json();
           const stylized = result.stylized || [];
+          const remaining = result.remaining_credits;
 
           outputGallery.innerHTML = "";
 
@@ -452,6 +453,11 @@
             container.appendChild(download);
             outputGallery.appendChild(container);
           });
+          
+          const creditsEl = document.getElementById("creditsDisplay");
+          if (creditsEl && typeof remaining !== 'undefined') {
+            creditsEl.textContent = `Credits: ${remaining}`;
+          }
 
           document.getElementById("uploadStatus").textContent = "All stylizations complete!";
           document.getElementById("downloadAllBtn").style.display = "block";
@@ -486,53 +492,53 @@
 
 
     function openModal(type) {
-    const modal = document.getElementById("supportModal");
-    const title = document.getElementById("modalTitle");
-    title.textContent = type === "report" ? "Report an Issue" : "Support Request";
-    modal.style.display = "block";
-  }
+      const modal = document.getElementById("supportModal");
+      const title = document.getElementById("modalTitle");
+      title.textContent = type === "report" ? "Report an Issue" : "Support Request";
+      modal.style.display = "block";
+    }
 
-  function closeModal() {
-    document.getElementById("supportModal").style.display = "none";
-    document.getElementById("supportForm").reset();
-  }
+    function closeModal() {
+      document.getElementById("supportModal").style.display = "none";
+      document.getElementById("supportForm").reset();
+    }
 
-  // Submit form (fake submission for now)
-  document.getElementById("supportForm").addEventListener("submit", async function (e) {
-  e.preventDefault();
-  const form = e.target;
-  const username = form.username.value;
-  const message = form.message.value;
-  const topic = document.getElementById("modalTitle").textContent.includes("Report") ? "Report" : "Support";
+    // Submit form (fake submission for now)
+    document.getElementById("supportForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const username = form.username.value;
+      const message = form.message.value;
+      const topic = document.getElementById("modalTitle").textContent.includes("Report") ? "Report" : "Support";
 
-  try {
-    const res = await fetch("/send-support", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, message, topic })
+      try {
+        const res = await fetch("/send-support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, message, topic })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Your message was sent successfully!");
+          closeModal();
+        } else {
+          alert("❌ Failed to send message.");
+        }
+      } catch (err) {
+        console.error("Email error:", err);
+        alert("❌ Error sending message.");
+      }
     });
 
-    const result = await res.json();
-    if (result.success) {
-      alert("✅ Your message was sent successfully!");
-      closeModal();
-    } else {
-      alert("❌ Failed to send message.");
-    }
-  } catch (err) {
-    console.error("Email error:", err);
-    alert("❌ Error sending message.");
-  }
-});
 
-
-  // Close modal if clicked outside
-  window.addEventListener("click", function (e) {
-    const modal = document.getElementById("supportModal");
-    if (e.target == modal) {
-      closeModal();
-    }
-  });
+    // Close modal if clicked outside
+    window.addEventListener("click", function (e) {
+      const modal = document.getElementById("supportModal");
+      if (e.target == modal) {
+        closeModal();
+      }
+    });
   </script>
   <!-- Floating buttons -->
   <div id="supportButtons">
