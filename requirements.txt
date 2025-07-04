@@ -3,7 +3,6 @@ replicate
 requests
 werkzeug
 flask_sqlalchemy
-psycopg2-binary	
+psycopg2-binary
 gunicorn
-Flask
 python-dotenv
