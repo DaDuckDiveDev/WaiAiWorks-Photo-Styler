@@ -216,19 +216,14 @@
       <div id="spinner" style="display: none; text-align: center; margin-top: 10px;">
         <div class="loader"></div>
       </div>
+    </div>
+    <div class="center">
+      <h3>Results</h3>
       <div id="outputGallery"></div>
       <button id="downloadAllBtn" style="display: none; margin-top: 20px;">Download All Stylized Images</button>
     </div>
-    <div class="center">
-      <h3>Instructions</h3>
-      <ul>
-        <li>Select 1-5 images using the file picker (hold SHIFT while selecting)</li>
-        <li>Click "Stylize Images" to convert to Ghibli-style</li>
-        <li>Each result will show with its own download button</li>
-      </ul>
-    </div>
     <div class="right">
-      <h3>Instructions</h3>
+      <h3>Instructions (Please read)</h3>
       <ul>
         <li>Select 1-5 images using the file picker (hold CTRL while selecting)</li>
         <li>Click "Stylize Images" to convert your batch of photos to selected style</li>
@@ -258,6 +253,7 @@
 
       uploadedImageUrls = [];
       document.getElementById("outputGallery").innerHTML = "";
+      document.getElementById("downloadAllBtn").style.display = "none";
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("spinner").style.display = "block";//spin om
 
@@ -303,7 +299,7 @@
 
         if (!uploadedImageUrls.length) return;
 
-        const outputGallery = document.getElementById("outputGallery");
+        const outputGallery = document.querySelector(".center");
         document.getElementById("uploadStatus").textContent = `Stylizing images (${selectedStyle})...`;
         outputGallery.innerHTML = "";
 
@@ -320,7 +316,7 @@
           const result = await res.json();
           const stylized = result.stylized || [];
 
-          const outputGallery = document.getElementById("outputGallery");
+          const outputGallery = document.querySelector(".center");
           outputGallery.innerHTML = "";
 
           stylized.forEach((item, index) => {
