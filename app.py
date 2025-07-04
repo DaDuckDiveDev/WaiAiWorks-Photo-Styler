@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
+from datetime import datetime, date
 from stylize import stylize_image
-from datetime import datetime
 import os
 
 # App setup
@@ -31,7 +31,7 @@ USERS = {
     "luckystrike": "photoLS",
     "dave": "photoDB",
     "dksteak": "photoDK",
-    "user7": "photo7",
+    "geometry": "Geotest1",
     "user8": "photo8",
     "user9": "photo9",
     "user10": "photo10"
@@ -44,6 +44,8 @@ class UserTracking(db.Model):
     uploads = db.Column(db.Integer, default=0)
     downloads = db.Column(db.Integer, default=0)
     stylizations = db.Column(db.Integer, default=0)
+    credits = db.Column(db.Integer, default=20)
+    last_credit_refresh = db.Column(db.Date)
     last_login = db.Column(db.DateTime)
 
 # Create tables
@@ -59,6 +61,12 @@ def track_event(username, event_type, count=1):
     if not stats:
         stats = UserTracking(username=username)
         db.session.add(stats)
+
+    # 🔁 Daily credit refresh
+    today = date.today()
+    if stats.last_credit_refresh != today:
+        stats.credits = 20  # default daily credit refresh
+        stats.last_credit_refresh = today
 
     if event_type == "login":
         stats.last_login = datetime.utcnow()
@@ -90,7 +98,17 @@ def logout():
 def index():
     if "user" not in session:
         return redirect(url_for("login"))
-    return render_template("index.html", username=session.get("user"))
+
+    user = session["user"]
+    stats = UserTracking.query.get(user)
+
+    # Daily reset logic
+    if stats and (not stats.last_credit_refresh or stats.last_credit_refresh < date.today()):
+        stats.credits = 20
+        stats.last_credit_refresh = date.today()
+        db.session.commit()
+
+    return render_template("index.html", username=user, credits=stats.credits if stats else 0)
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -126,18 +144,28 @@ def upload():
 
     return jsonify({"image_urls": uploaded_urls})
 
-
 @app.route("/stylize", methods=["POST"])
 def stylize():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
+    username = session["user"]
     data = request.get_json()
     image_urls = data.get("image_urls")
     style = data.get("style")
 
     if not image_urls or not style:
         return jsonify({"error": "Missing image URLs or style"}), 400
+
+    user_stats = UserTracking.query.get(username)
+    if not user_stats:
+        return jsonify({"error": "User tracking not found"}), 500
+
+    # ✅ Reset credits once a day
+    if not user_stats.last_credit_refresh or user_stats.last_credit_refresh < date.today():
+        user_stats.credits = 20
+        user_stats.last_credit_refresh = date.today()
+        db.session.commit()
 
     results = []
     count = 0
@@ -152,9 +180,12 @@ def stylize():
             print(f"Stylization error for {url}: {e}")
 
     if count > 0:
-        track_event(session["user"], "stylizations", count=count)
+        track_event(username, "stylizations", count=count)
+        user_stats.credits -= count  # 🔻 Allow negative credits
+        db.session.commit()
 
-    return jsonify({"stylized": results})
+    return jsonify({"stylized": results, "remaining_credits": user_stats.credits})
+
     
 @app.route("/track-download")
 def track_download():
