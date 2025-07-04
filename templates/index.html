@@ -230,14 +230,14 @@
     <div class="right">
       <h3>Instructions</h3>
       <ul>
-        <li>Select 1-5 images using the file picker (hold SHIFT while selecting)</li>
-        <li>Click "Stylize Images" to convert to Ghibli-style</li>
+        <li>Select 1-5 images using the file picker (hold CTRL while selecting)</li>
+        <li>Click "Stylize Images" to convert your batch of photos to selected style</li>
         <li>Each result will show with its own download button</li>
       </ul>
       <h3>After Styling</h3>
       <ul>
-        <li>FIRST TIMER: hit “Allow multiple downloads” if prompted</li>
-        <li>Preview all photos to check for errors</li>
+        <li>FIRST TIMERs: hit “Allow multiple downloads” if prompted (left side of search bar)</li>
+        <li>Preview all photos for errors. This AI creates inaccurate results 94% of the time</li>
         <li>Click "Download All" to fetch all stylized images</li>
       </ul>
     </div>
@@ -307,45 +307,47 @@
         document.getElementById("uploadStatus").textContent = `Stylizing images (${selectedStyle})...`;
         outputGallery.innerHTML = "";
 
-        const batchSize = 5;
-
-        for (let i = 0; i < uploadedImageUrls.length; i += batchSize) {
-          const batch = uploadedImageUrls.slice(i, i + batchSize);
-
-          const promises = batch.map(async (url, index) => {
-            const globalIndex = i + index + 1;
-            try {
-              const res = await fetch("/stylize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image_url: url, style: selectedStyle })
-              });
-
-              const result = await res.json();
-              const serverPath = result.output_path;
-              const imageUrl = "/" + serverPath;
-
-              const container = document.createElement("div");
-              container.className = "output-item";
-
-              const img = document.createElement("img");
-              img.src = imageUrl;
-
-              const download = document.createElement("a");
-              download.href = `/track-download?path=${serverPath}`;
-              download.download = `stylized-${selectedStyle}-${globalIndex}.jpg`;
-              download.innerText = "Download Stylized Image";
-
-              container.appendChild(img);
-              container.appendChild(download);
-              outputGallery.appendChild(container);
-            } catch (err) {
-              console.error(`Stylization failed for image ${globalIndex}:`, err);
-            }
+        try {
+          const res = await fetch("/stylize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image_urls: uploadedImageUrls,
+              style: selectedStyle
+            })
           });
 
-          await Promise.all(promises);
+          const result = await res.json();
+          const stylized = result.stylized || [];
+
+          const outputGallery = document.getElementById("outputGallery");
+          outputGallery.innerHTML = "";
+
+          stylized.forEach((item, index) => {
+            const container = document.createElement("div");
+            container.className = "output-item";
+
+            const img = document.createElement("img");
+            img.src = "/" + item.output_path;
+
+            const download = document.createElement("a");
+            download.href = `/track-download?path=${item.output_path}`;
+            download.download = `stylized-${selectedStyle}-${index + 1}.jpg`;
+            download.innerText = "Download Stylized Image";
+
+            container.appendChild(img);
+            container.appendChild(download);
+            outputGallery.appendChild(container);
+          });
+
+          document.getElementById("uploadStatus").textContent = "All stylizations complete!";
+          document.getElementById("downloadAllBtn").style.display = "block";
+
+        } catch (err) {
+          console.error("Stylization batch failed:", err);
+          document.getElementById("uploadStatus").textContent = "Stylization failed.";
         }
+
 
         document.getElementById("uploadStatus").textContent = "All stylizations complete!";
         document.getElementById("downloadAllBtn").style.display = "block";
