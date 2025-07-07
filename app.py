@@ -41,7 +41,7 @@ USERS = {
     "dksteak": "photoDK",
     "geometry": "Geotest1",
     "alexpix": "Pix2025",
-    "user9": "photo9",
+    "deepdish": "1pizza",
     "user10": "photo10"
 }
 
