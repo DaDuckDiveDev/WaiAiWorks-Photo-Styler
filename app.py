@@ -40,7 +40,7 @@ USERS = {
     "dave": "photoDB",
     "dksteak": "photoDK",
     "geometry": "Geotest1",
-    "user8": "photo8",
+    "alexpix": "Pix2025",
     "user9": "photo9",
     "user10": "photo10"
 }
