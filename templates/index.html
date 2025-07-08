@@ -52,7 +52,6 @@
 
     #outputGallery img {
       width: 160px;
-      /* Smaller width */
       height: auto;
       margin: 10px;
       display: block;
@@ -76,44 +75,20 @@
       margin-bottom: 30px;
     }
 
-    .container {
+    .main {
       display: flex;
       gap: 40px;
       margin-top: 40px;
     }
 
-    .left,
-    .center,
-    .right {
+    .upload-section,
+    .results-section {
       flex: 1;
-    }
-
-    .center {
-      text-align: center;
       padding: 0 10px;
-    }
-
-    .left,
-    .right {
-      padding: 0 10px;
-    }
-
-    #horiLogo {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 10;
-    }
-
-    #horiLogo img {
-      height: 80px;
-      width: auto;
-      border-radius: 8px;
     }
 
     input[type="file"] {
       display: none;
-      /* Hide default file picker */
     }
 
     .custom-file-label {
@@ -126,11 +101,6 @@
       border: 2px solid white;
       border-radius: 6px;
       cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      z-index: 1;
-      transition: background-color 0.3s ease;
-      user-select: none;
       text-align: center;
     }
 
@@ -138,9 +108,26 @@
       background-color: rgba(44, 144, 185, 0.9);
     }
 
+    .stylizeBtn {
+      font-weight: bold;
+      display: none;
+      margin: 20px auto;
+      padding: 12px 26px;
+      font-size: 16px;
+      color: white;
+      background-color: rgba(64, 174, 215, 0.85);
+      border: 2px solid white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
     .stylizeBtn.active {
       outline: 2px solid white;
       background-color: rgba(64, 174, 215, 0.95);
+    }
+
+    .stylizeBtn:hover {
+      background-color: rgba(44, 144, 185, 0.9);
     }
 
     .loader {
@@ -154,50 +141,8 @@
     }
 
     @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    .stylizeBtn {
-      font-weight: bold;
-      display: none;
-      position: relative;
-      overflow: hidden;
-      z-index: 1;
-      margin: 20px auto;
-      padding: 12px 26px;
-      font-size: 16px;
-      color: white;
-      background-color: rgba(64, 174, 215, 0.85);
-      border: 2px solid white;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .stylizeBtn:hover {
-      background-color: rgba(44, 144, 185, 0.9);
-    }
-
-    .stylizeBtn::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 10%, transparent 70%);
-      transform: translate(-50%, -50%) scale(0.8);
-      animation: ripple 3s infinite linear;
-      opacity: 0.4;
-      pointer-events: none;
-      border-radius: 50%;
-      z-index: 0;
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     /* Support buttons */
@@ -210,7 +155,6 @@
       gap: 12px;
       z-index: 100;
     }
-
     .support-btn {
       background-color: rgba(64, 174, 215, 0.85);
       border: 2px solid white;
@@ -220,35 +164,27 @@
       padding: 10px 16px;
       border-radius: 6px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
     }
-
     .support-btn:hover {
       background-color: rgba(44, 144, 185, 0.95);
     }
 
-    /* Modal styling */
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
       z-index: 200;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0, 0, 0, 0.6);
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.6);
     }
-
     .modal-content {
       background-color: #fff;
       margin: 10% auto;
       padding: 20px;
-      width: 90%;
-      max-width: 400px;
+      width: 90%; max-width: 400px;
       border-radius: 8px;
     }
-
     .close-btn {
       color: #aaa;
       float: right;
@@ -256,32 +192,20 @@
       font-weight: bold;
       cursor: pointer;
     }
-
     .close-btn:hover {
       color: black;
     }
-
-    #supportForm input,
-    #supportForm textarea {
-      width: 100%;
-      padding: 10px;
+    #supportForm input, #supportForm textarea {
+      width: 100%; padding: 10px; margin-top: 4px;
+      border: 1px solid #ccc; border-radius: 4px;
       font-size: 14px;
-      margin-top: 4px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
     }
-
     #supportForm button {
-      margin-top: 12px;
-      padding: 10px 16px;
+      margin-top: 12px; padding: 10px 16px;
       background-color: rgba(64, 174, 215, 0.85);
-      border: none;
-      color: white;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
+      border: none; color: white; font-weight: bold;
+      border-radius: 6px; cursor: pointer;
     }
-
     #supportForm button:hover {
       background-color: rgba(44, 144, 185, 0.95);
     }
@@ -290,262 +214,51 @@
 
 <body>
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <!-- Left: Logo + Welcome -->
     <div style="display: flex; align-items: center; gap: 16px;">
-      <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="horiLogo"
-        style="height: 80px; border-radius: 8px;">
-      <div style="color: white; font-weight: bold; font-size: 28px;">
+      <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="Logo" style="height:80px; border-radius:8px;">
+      <div style="color:white; font-weight:bold; font-size:28px;">
         Welcome,<br>{{ username }}
       </div>
     </div>
-
-    <!-- Right: Credits -->
-    <div id="creditsDisplay" style="color: white; font-weight: bold; font-size: 20px;">
+    <div id="creditsDisplay" style="color:white; font-weight:bold; font-size:20px;">
       Credits: {{ credits }}
     </div>
   </div>
+
   <h1>Upload Photo to Stylize</h1>
 
-  <div class="container">
-    <div class="left">
-      <div style="display: flex; justify-content: center;">
-        <form id="uploadForm">
-          <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
-          <input type="file" name="image" id="imageInput" accept="image/*" multiple required>
-        </form>
+  <div class="main">
+    <!-- Upload & Style -->
+    <div class="upload-section">
+      <div style="text-align:center;">
+        <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
+        <input type="file" id="imageInput" name="image" accept="image/*" multiple>
       </div>
       <div id="styleButtons">
-        <button class="stylizeBtn" data-style="anime">🎨 Anime Style</button>
-        <button class="stylizeBtn" data-style="pixar">🧸 Pixar Style</button>
-        <button class="stylizeBtn" data-style="comic">🦸 Comic Style</button>
-        <button class="stylizeBtn" data-style="disney">👓Disney Style</button>
+        <button class="stylizeBtn" data-style="anime">🎨 Anime</button>
+        <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
+        <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
+        <button class="stylizeBtn" data-style="disney">👓 Disney</button>
       </div>
-
       <p id="uploadStatus"></p>
-      <div id="spinner" style="display: none; text-align: center; margin-top: 10px;">
+      <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
         <div class="loader"></div>
       </div>
     </div>
-    <div class="center">
+
+    <!-- Results Gallery -->
+    <div class="results-section">
       <h3>Results</h3>
       <div id="outputGallery"></div>
-      <button id="downloadAllBtn" style="display: none; margin-top: 20px;">Download All Stylized Images</button>
-    </div>
-    <div class="right">
-      <h3>Instructions (FIRST TIMERs Please read)</h3>
-      <ul>
-        <li>Select 1-5 images using the file picker (hold CTRL while selecting)</li>
-        <li>Click "Stylize Images" to convert your batch of photos to selected style</li>
-      </ul>
-      <h3>After Styling</h3>
-      <ul>
-        <li>Preview all photos. 6% Error </li>
-        <li>Click "Download All" to fetch all stylized images</li>
-        <li>“Allow multiple downloads” for greater convenience if prompted (left side of search bar)</li>
-        <li>Your Photos will be on the DOWNLOADS tab in DarkRoom</li>
-      </ul>
-      <h3>Tips</h3>
-      <ul>
-        <li>Avoid groups with 6+ people unless its very detailed and up close (risk of fail render)</li>
-        <li>Make sure photos are crisp and not blurry</li>
-        <li>In rare cases program might generate an extra person-> Use different theme</li>
-      </ul>
+      <button id="downloadAllBtn" style="display:none; margin-top:20px;">Download All Stylized Images</button>
     </div>
   </div>
 
-  <script>
-    let uploadedImageUrls = [];
-
-    document.getElementById("imageInput").addEventListener("change", function () {
-      const files = this.files;
-      if (!files.length) return;
-
-      if (files.length > 5) {
-        alert("Please select up to 5 images only.");
-        this.value = "";
-        return;
-      }
-
-      // 🔁 Reset all UI state before new upload
-      uploadedImageUrls = [];
-      document.getElementById("outputGallery").innerHTML = "";
-      document.getElementById("downloadAllBtn").style.display = "none";
-      document.getElementById("uploadStatus").textContent = "Uploading...";
-      document.getElementById("spinner").style.display = "block";
-      document.querySelectorAll(".stylizeBtn").forEach(btn => {
-        btn.classList.remove("active");
-        btn.disabled = false;
-      });
-
-      const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append("image", file);
-      });
-
-      fetch("/upload", {
-        method: "POST",
-        body: formData
-      })
-        .then(res => res.json())
-        .then(result => {
-          document.getElementById("spinner").style.display = "none";
-          if (result.image_urls && result.image_urls.length) {
-            uploadedImageUrls = result.image_urls;
-            document.getElementById("uploadStatus").textContent = "Upload successful!";
-            document.querySelectorAll(".stylizeBtn").forEach(btn => {
-              btn.style.display = "block";
-            });
-          } else {
-            document.getElementById("uploadStatus").textContent = "Upload failed.";
-          }
-        })
-        .catch(err => {
-          document.getElementById("spinner").style.display = "none";
-          document.getElementById("uploadStatus").textContent = "Upload error.";
-          console.error("Upload error:", err);
-        });
-    });
-
-    document.querySelectorAll(".stylizeBtn").forEach(button => {
-      button.addEventListener("click", async function () {
-        document.querySelectorAll(".stylizeBtn").forEach(btn => btn.classList.remove("active"));
-        this.classList.add("active");
-        const selectedStyle = this.getAttribute("data-style");
-
-        document.querySelectorAll(".stylizeBtn").forEach(btn => btn.disabled = true);
-
-        if (!uploadedImageUrls.length) return;
-
-        const outputGallery = document.getElementById("outputGallery");
-        document.getElementById("uploadStatus").textContent = `Stylizing images (${selectedStyle})...`;
-        outputGallery.innerHTML = "";
-
-        try {
-          const res = await fetch("/stylize", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              image_urls: uploadedImageUrls,
-              style: selectedStyle
-            })
-          });
-
-          const result = await res.json();
-          const stylized = result.stylized || [];
-          const remaining = result.remaining_credits;
-
-          outputGallery.innerHTML = "";
-
-          stylized.forEach((item, index) => {
-            const container = document.createElement("div");
-            container.className = "output-item";
-
-            const img = document.createElement("img");
-            img.src = "/" + item.output_path;
-
-            const download = document.createElement("a");
-            download.href = `/track-download?path=${item.output_path}`;
-            download.download = `stylized-${selectedStyle}-${index + 1}.jpg`;
-            download.innerText = "Download Stylized Image";
-
-            container.appendChild(img);
-            container.appendChild(download);
-            outputGallery.appendChild(container);
-          });
-
-          const creditsEl = document.getElementById("creditsDisplay");
-          if (creditsEl && typeof remaining !== 'undefined') {
-            creditsEl.textContent = `Credits: ${remaining}`;
-          }
-
-          document.getElementById("uploadStatus").textContent = "All stylizations complete!";
-          document.getElementById("downloadAllBtn").style.display = "block";
-
-        } catch (err) {
-          console.error("Stylization batch failed:", err);
-          document.getElementById("uploadStatus").textContent = "Stylization failed.";
-        }
-
-        document.querySelectorAll(".stylizeBtn").forEach(btn => btn.disabled = false);
-      });
-    });
-
-    document.getElementById("downloadAllBtn").addEventListener("click", () => {
-      const links = document.querySelectorAll("#outputGallery a");
-      if (!links.length) return;
-
-      const downloadBtn = document.getElementById("downloadAllBtn");
-      downloadBtn.disabled = true;
-      document.getElementById("uploadStatus").textContent = "Downloading all images...";
-
-      links.forEach((link, i) => {
-        setTimeout(() => {
-          link.click();
-          if (i === links.length - 1) {
-            document.getElementById("uploadStatus").textContent = "All downloads triggered!";
-            downloadBtn.disabled = false;
-          }
-        }, i * 600);
-      });
-    });
-
-
-    function openModal(type) {
-      const modal = document.getElementById("supportModal");
-      const title = document.getElementById("modalTitle");
-      title.textContent = type === "report" ? "Report an Issue" : "Support Request";
-      modal.style.display = "block";
-    }
-
-    function closeModal() {
-      document.getElementById("supportModal").style.display = "none";
-      document.getElementById("supportForm").reset();
-    }
-
-    // Submit form (fake submission for now)
-    document.getElementById("supportForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
-      const form = e.target;
-      const username = form.username.value;
-      const message = form.message.value;
-      const topic = document.getElementById("modalTitle").textContent.includes("Report") ? "Report" : "Support";
-
-      try {
-        const res = await fetch("/send-support", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, message, topic })
-        });
-
-        const result = await res.json();
-        if (result.success) {
-          alert("✅ Your message was sent successfully!");
-          closeModal();
-        } else {
-          alert("❌ Failed to send message.");
-        }
-      } catch (err) {
-        console.error("Email error:", err);
-        alert("❌ Error sending message.");
-      }
-    });
-
-
-    // Close modal if clicked outside
-    window.addEventListener("click", function (e) {
-      const modal = document.getElementById("supportModal");
-      if (e.target == modal) {
-        closeModal();
-      }
-    });
-  </script>
-  <!-- Floating buttons -->
+  <!-- Support Buttons & Modal -->
   <div id="supportButtons">
     <button onclick="openModal('report')" class="support-btn">🛠️ Report Issue</button>
     <button onclick="openModal('support')" class="support-btn">💬 Support</button>
   </div>
-
-  <!-- Modal overlay -->
   <div id="supportModal" class="modal">
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -553,15 +266,125 @@
       <form id="supportForm">
         <label>Username:</label>
         <input type="text" name="username" value="{{ username }}" readonly><br><br>
-
-        <label for="message">Message:</label><br>
-        <textarea name="message" rows="5" placeholder="Type your message here..." required></textarea><br><br>
-
+        <label>Message:</label>
+        <textarea name="message" rows="5" required></textarea>
         <button type="submit">Submit</button>
       </form>
     </div>
   </div>
 
+  <script>
+    let uploadedImageUrls = [];
+
+    document.getElementById("imageInput").addEventListener("change", function() {
+      const files = this.files;
+      if (!files.length) return;
+      if (files.length > 5) {
+        alert("Please select up to 5 images only.");
+        this.value = "";
+        return;
+      }
+      uploadedImageUrls = [];
+      document.getElementById("outputGallery").innerHTML = "";
+      document.getElementById("downloadAllBtn").style.display = "none";
+      document.getElementById("uploadStatus").textContent = "Uploading...";
+      document.getElementById("spinner").style.display = "block";
+      document.querySelectorAll(".stylizeBtn").forEach(btn => {
+        btn.classList.remove("active"); btn.disabled = false; btn.style.display="none";
+      });
+      const formData = new FormData();
+      Array.from(files).forEach(f => formData.append("image", f));
+      fetch("/upload", { method:"POST", body:formData })
+        .then(r=>r.json()).then(res=>{
+          document.getElementById("spinner").style.display="none";
+          if (res.image_urls?.length) {
+            uploadedImageUrls = res.image_urls;
+            document.getElementById("uploadStatus").textContent="Upload successful!";
+            document.querySelectorAll(".stylizeBtn").forEach(btn=>btn.style.display="block");
+          } else {
+            document.getElementById("uploadStatus").textContent="Upload failed.";
+          }
+        }).catch(err=>{
+          document.getElementById("spinner").style.display="none";
+          document.getElementById("uploadStatus").textContent="Upload error.";
+          console.error(err);
+        });
+    });
+
+    document.querySelectorAll(".stylizeBtn").forEach(btn=>{
+      btn.addEventListener("click", async function(){
+        document.querySelectorAll(".stylizeBtn").forEach(b=>b.classList.remove("active"));
+        this.classList.add("active");
+        const style = this.dataset.style;
+        document.querySelectorAll(".stylizeBtn").forEach(b=>b.disabled=true);
+        if (!uploadedImageUrls.length) return;
+        document.getElementById("uploadStatus").textContent=`Stylizing (${style})...`;
+        const gallery = document.getElementById("outputGallery");
+        gallery.innerHTML="";
+        try {
+          const res = await fetch("/stylize", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ image_urls: uploadedImageUrls, style })
+          });
+          const { stylized, remaining_credits } = await res.json();
+          gallery.innerHTML="";
+          stylized.forEach((it,i)=>{
+            const d = document.createElement("div");
+            d.className="output-item";
+            const img = document.createElement("img");
+            img.src = "/" + it.output_path;
+            const a = document.createElement("a");
+            a.href = `/track-download?path=${it.output_path}`;
+            a.download = `stylized-${style}-${i+1}.jpg`;
+            a.innerText = "Download";
+            d.append(img, a);
+            gallery.append(d);
+          });
+          document.getElementById("creditsDisplay").textContent=`Credits: ${remaining_credits}`;
+          document.getElementById("uploadStatus").textContent="All done!";
+          document.getElementById("downloadAllBtn").style.display="block";
+        } catch(e){
+          console.error(e);
+          document.getElementById("uploadStatus").textContent="Stylization failed.";
+        }
+        document.querySelectorAll(".stylizeBtn").forEach(b=>b.disabled=false);
+      });
+    });
+
+    document.getElementById("downloadAllBtn").addEventListener("click", ()=>{
+      const links = document.querySelectorAll("#outputGallery a");
+      links.forEach((l,i)=>setTimeout(()=>l.click(), i*600));
+    });
+
+    function openModal(type){
+      document.getElementById("modalTitle").textContent = type==="report"?"Report Issue":"Support";
+      document.getElementById("supportModal").style.display="block";
+    }
+    function closeModal(){
+      document.getElementById("supportModal").style.display="none";
+      document.getElementById("supportForm").reset();
+    }
+    document.getElementById("supportForm").addEventListener("submit", async e=>{
+      e.preventDefault();
+      const u=document.querySelector("#supportForm [name=username]").value;
+      const m=document.querySelector("#supportForm [name=message]").value;
+      const t=document.getElementById("modalTitle").innerText.includes("Report")?"Report":"Support";
+      try{
+        const r=await fetch("/send-support",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({username:u,message:m,topic:t})
+        });
+        const j=await r.json();
+        alert(j.success?"✅ Sent!":"❌ Failed.");
+        if(j.success) closeModal();
+      }catch(err){console.error(err);alert("❌ Error.");}
+    });
+    window.addEventListener("click", e=> {
+      if(e.target.id==="supportModal") closeModal();
+    });
+  </script>
 </body>
 
 </html>
