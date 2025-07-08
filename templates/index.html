@@ -104,6 +104,13 @@
     }
 
     .main {
+      display: flex;
+      flex-direction: column;
+      /* stack children top→bottom */
+      align-items: center;
+      /* center everything horizontally */
+      gap: 20px;
+      /* spacing between preview & results */
       margin-top: 20px;
     }
 
@@ -136,7 +143,7 @@
 
     .stylizeBtn {
       font-weight: bold;
-      display: none;
+      display: inline-block;
       margin: 0;
       padding: 12px 26px;
       font-size: 16px;
@@ -279,33 +286,40 @@
   <h1>Upload Photo to Stylize</h1>
 
   <div class="main">
-    <!-- Upload & Style -->
-    <div class="upload-section">
-      <div style="text-align:center;">
-        <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
-        <input type="file" id="imageInput" name="image" accept="image/*" multiple>
-      </div>
-      <div id="styleButtons">
-        <button class="stylizeBtn" data-style="anime">🎨 Anime</button>
-        <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
-        <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
-        <button class="stylizeBtn" data-style="disney">👓 Disney</button>
-      </div>
-      <p id="uploadStatus"></p>
-      <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
-        <div class="loader"></div>
-      </div>
-    </div>
-    <div id="uploadPreview" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px;">
+  <!-- 1) Upload & Style -->
+  <div class="upload-section">
+    <div style="text-align:center;">
+      <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
+      <input type="file" id="imageInput" name="image" accept="image/*" multiple>
     </div>
 
-    <!-- Results Gallery -->
-    <div class="results-section">
-      <h3>Results</h3>
-      <div id="outputGallery"></div>
-      <button id="downloadAllBtn" style="display:none; margin-top:20px;">Download All Stylized Images</button>
+    <!-- style buttons will now line up in a row -->
+    <div id="styleButtons">
+      <button class="stylizeBtn" data-style="anime">🎨 Anime</button>
+      <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
+      <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
+      <button class="stylizeBtn" data-style="disney">👓 Disney</button>
+    </div>
+
+    <p id="uploadStatus"></p>
+    <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
+      <div class="loader"></div>
     </div>
   </div>
+
+  <!-- 2) Preview -->
+  <div id="uploadPreview"></div>
+
+  <!-- 3) Results Gallery -->
+  <div class="results-section">
+    <h3>Results</h3>
+    <div id="outputGallery"></div>
+    <button id="downloadAllBtn" style="display:none; margin-top:20px;">
+      Download All Stylized Images
+    </button>
+  </div>
+</div>
+
 
   <!-- Support Buttons & Modal -->
   <div id="supportButtons">
