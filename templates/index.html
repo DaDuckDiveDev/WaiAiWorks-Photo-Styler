@@ -50,6 +50,21 @@
       text-align: center;
     }
 
+    #uploadPreview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    #uploadPreview img {
+      width: 300px;
+      height: auto;
+      margin: 5px;
+      border: 2px solid white;
+    }
+
     #outputGallery img {
       width: 160px;
       height: auto;
@@ -141,8 +156,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     /* Support buttons */
@@ -155,6 +175,7 @@
       gap: 12px;
       z-index: 100;
     }
+
     .support-btn {
       background-color: rgba(64, 174, 215, 0.85);
       border: 2px solid white;
@@ -165,6 +186,7 @@
       border-radius: 6px;
       cursor: pointer;
     }
+
     .support-btn:hover {
       background-color: rgba(44, 144, 185, 0.95);
     }
@@ -174,17 +196,22 @@
       display: none;
       position: fixed;
       z-index: 200;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.6);
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
     }
+
     .modal-content {
       background-color: #fff;
       margin: 10% auto;
       padding: 20px;
-      width: 90%; max-width: 400px;
+      width: 90%;
+      max-width: 400px;
       border-radius: 8px;
     }
+
     .close-btn {
       color: #aaa;
       float: right;
@@ -192,20 +219,32 @@
       font-weight: bold;
       cursor: pointer;
     }
+
     .close-btn:hover {
       color: black;
     }
-    #supportForm input, #supportForm textarea {
-      width: 100%; padding: 10px; margin-top: 4px;
-      border: 1px solid #ccc; border-radius: 4px;
+
+    #supportForm input,
+    #supportForm textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
       font-size: 14px;
     }
+
     #supportForm button {
-      margin-top: 12px; padding: 10px 16px;
+      margin-top: 12px;
+      padding: 10px 16px;
       background-color: rgba(64, 174, 215, 0.85);
-      border: none; color: white; font-weight: bold;
-      border-radius: 6px; cursor: pointer;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
     }
+
     #supportForm button:hover {
       background-color: rgba(44, 144, 185, 0.95);
     }
@@ -215,7 +254,8 @@
 <body>
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <div style="display: flex; align-items: center; gap: 16px;">
-      <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="Logo" style="height:80px; border-radius:8px;">
+      <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="Logo"
+        style="height:80px; border-radius:8px;">
       <div style="color:white; font-weight:bold; font-size:28px;">
         Welcome,<br>{{ username }}
       </div>
@@ -244,6 +284,8 @@
       <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
         <div class="loader"></div>
       </div>
+    </div>
+    <div id="uploadPreview" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px;">
     </div>
 
     <!-- Results Gallery -->
@@ -276,7 +318,7 @@
   <script>
     let uploadedImageUrls = [];
 
-    document.getElementById("imageInput").addEventListener("change", function() {
+    document.getElementById("imageInput").addEventListener("change", function () {
       const files = this.files;
       if (!files.length) return;
       if (files.length > 5) {
@@ -287,103 +329,121 @@
       uploadedImageUrls = [];
       document.getElementById("outputGallery").innerHTML = "";
       document.getElementById("downloadAllBtn").style.display = "none";
+      document.getElementById("uploadPreview").innerHTML = "";
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("spinner").style.display = "block";
       document.querySelectorAll(".stylizeBtn").forEach(btn => {
-        btn.classList.remove("active"); btn.disabled = false; btn.style.display="none";
+        btn.classList.remove("active"); btn.disabled = false; btn.style.display = "none";
       });
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append("image", f));
-      fetch("/upload", { method:"POST", body:formData })
-        .then(r=>r.json()).then(res=>{
-          document.getElementById("spinner").style.display="none";
+      fetch("/upload", {
+        method: "POST",
+        body: formData
+      })
+        .then(r => r.json())
+        .then(res => {
+          document.getElementById("spinner").style.display = "none";
+
+          const preview = document.getElementById("uploadPreview");
+          preview.innerHTML = "";                      // 1) clear old
+
           if (res.image_urls?.length) {
             uploadedImageUrls = res.image_urls;
-            document.getElementById("uploadStatus").textContent="Upload successful!";
-            document.querySelectorAll(".stylizeBtn").forEach(btn=>btn.style.display="block");
+            document.getElementById("uploadStatus").textContent = "Upload successful!";
+            document.querySelectorAll(".stylizeBtn").forEach(btn => btn.style.display = "block");
+
+            // 2) show thumbnails
+            res.image_urls.forEach(url => {
+              const img = document.createElement("img");
+              img.src = url;
+              preview.appendChild(img);
+            });
+
           } else {
-            document.getElementById("uploadStatus").textContent="Upload failed.";
+            document.getElementById("uploadStatus").textContent = "Upload failed.";
           }
-        }).catch(err=>{
-          document.getElementById("spinner").style.display="none";
-          document.getElementById("uploadStatus").textContent="Upload error.";
+        })
+        .catch(err => {
+          document.getElementById("spinner").style.display = "none";
+          document.getElementById("uploadStatus").textContent = "Upload error.";
           console.error(err);
         });
-    });
 
-    document.querySelectorAll(".stylizeBtn").forEach(btn=>{
-      btn.addEventListener("click", async function(){
-        document.querySelectorAll(".stylizeBtn").forEach(b=>b.classList.remove("active"));
-        this.classList.add("active");
-        const style = this.dataset.style;
-        document.querySelectorAll(".stylizeBtn").forEach(b=>b.disabled=true);
-        if (!uploadedImageUrls.length) return;
-        document.getElementById("uploadStatus").textContent=`Stylizing (${style})...`;
-        const gallery = document.getElementById("outputGallery");
-        gallery.innerHTML="";
-        try {
-          const res = await fetch("/stylize", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ image_urls: uploadedImageUrls, style })
-          });
-          const { stylized, remaining_credits } = await res.json();
-          gallery.innerHTML="";
-          stylized.forEach((it,i)=>{
-            const d = document.createElement("div");
-            d.className="output-item";
-            const img = document.createElement("img");
-            img.src = "/" + it.output_path;
-            const a = document.createElement("a");
-            a.href = `/track-download?path=${it.output_path}`;
-            a.download = `stylized-${style}-${i+1}.jpg`;
-            a.innerText = "Download";
-            d.append(img, a);
-            gallery.append(d);
-          });
-          document.getElementById("creditsDisplay").textContent=`Credits: ${remaining_credits}`;
-          document.getElementById("uploadStatus").textContent="All done!";
-          document.getElementById("downloadAllBtn").style.display="block";
-        } catch(e){
-          console.error(e);
-          document.getElementById("uploadStatus").textContent="Stylization failed.";
-        }
-        document.querySelectorAll(".stylizeBtn").forEach(b=>b.disabled=false);
-      });
-    });
 
-    document.getElementById("downloadAllBtn").addEventListener("click", ()=>{
-      const links = document.querySelectorAll("#outputGallery a");
-      links.forEach((l,i)=>setTimeout(()=>l.click(), i*600));
-    });
-
-    function openModal(type){
-      document.getElementById("modalTitle").textContent = type==="report"?"Report Issue":"Support";
-      document.getElementById("supportModal").style.display="block";
-    }
-    function closeModal(){
-      document.getElementById("supportModal").style.display="none";
-      document.getElementById("supportForm").reset();
-    }
-    document.getElementById("supportForm").addEventListener("submit", async e=>{
-      e.preventDefault();
-      const u=document.querySelector("#supportForm [name=username]").value;
-      const m=document.querySelector("#supportForm [name=message]").value;
-      const t=document.getElementById("modalTitle").innerText.includes("Report")?"Report":"Support";
-      try{
-        const r=await fetch("/send-support",{
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({username:u,message:m,topic:t})
+      document.querySelectorAll(".stylizeBtn").forEach(btn => {
+        btn.addEventListener("click", async function () {
+          document.querySelectorAll(".stylizeBtn").forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+          const style = this.dataset.style;
+          document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = true);
+          if (!uploadedImageUrls.length) return;
+          document.getElementById("uploadStatus").textContent = `Stylizing (${style})...`;
+          const gallery = document.getElementById("outputGallery");
+          gallery.innerHTML = "";
+          try {
+            const res = await fetch("/stylize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image_urls: uploadedImageUrls, style })
+            });
+            const { stylized, remaining_credits } = await res.json();
+            gallery.innerHTML = "";
+            stylized.forEach((it, i) => {
+              const d = document.createElement("div");
+              d.className = "output-item";
+              const img = document.createElement("img");
+              img.src = "/" + it.output_path;
+              const a = document.createElement("a");
+              a.href = `/track-download?path=${it.output_path}`;
+              a.download = `stylized-${style}-${i + 1}.jpg`;
+              a.innerText = "Download";
+              d.append(img, a);
+              gallery.append(d);
+            });
+            document.getElementById("creditsDisplay").textContent = `Credits: ${remaining_credits}`;
+            document.getElementById("uploadStatus").textContent = "All done!";
+            document.getElementById("downloadAllBtn").style.display = "block";
+          } catch (e) {
+            console.error(e);
+            document.getElementById("uploadStatus").textContent = "Stylization failed.";
+          }
+          document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = false);
         });
-        const j=await r.json();
-        alert(j.success?"✅ Sent!":"❌ Failed.");
-        if(j.success) closeModal();
-      }catch(err){console.error(err);alert("❌ Error.");}
-    });
-    window.addEventListener("click", e=> {
-      if(e.target.id==="supportModal") closeModal();
-    });
+      });
+
+      document.getElementById("downloadAllBtn").addEventListener("click", () => {
+        const links = document.querySelectorAll("#outputGallery a");
+        links.forEach((l, i) => setTimeout(() => l.click(), i * 600));
+      });
+
+      function openModal(type) {
+        document.getElementById("modalTitle").textContent = type === "report" ? "Report Issue" : "Support";
+        document.getElementById("supportModal").style.display = "block";
+      }
+      function closeModal() {
+        document.getElementById("supportModal").style.display = "none";
+        document.getElementById("supportForm").reset();
+      }
+      document.getElementById("supportForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const u = document.querySelector("#supportForm [name=username]").value;
+        const m = document.querySelector("#supportForm [name=message]").value;
+        const t = document.getElementById("modalTitle").innerText.includes("Report") ? "Report" : "Support";
+        try {
+          const r = await fetch("/send-support", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, message: m, topic: t })
+          });
+          const j = await r.json();
+          alert(j.success ? "✅ Sent!" : "❌ Failed.");
+          if (j.success) closeModal();
+        } catch (err) { console.error(err); alert("❌ Error."); }
+      });
+      window.addEventListener("click", e => {
+        if (e.target.id === "supportModal") closeModal();
+      });
   </script>
 </body>
 
