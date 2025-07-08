@@ -318,6 +318,7 @@
   <script>
     let uploadedImageUrls = [];
 
+    // 1) Upload & Preview Handler
     document.getElementById("imageInput").addEventListener("change", function () {
       const files = this.files;
       if (!files.length) return;
@@ -326,40 +327,43 @@
         this.value = "";
         return;
       }
+
+      // Reset UI
       uploadedImageUrls = [];
+      document.getElementById("uploadPreview").innerHTML = "";
       document.getElementById("outputGallery").innerHTML = "";
       document.getElementById("downloadAllBtn").style.display = "none";
-      document.getElementById("uploadPreview").innerHTML = "";
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("spinner").style.display = "block";
       document.querySelectorAll(".stylizeBtn").forEach(btn => {
-        btn.classList.remove("active"); btn.disabled = false; btn.style.display = "none";
+        btn.classList.remove("active");
+        btn.disabled = false;
+        btn.style.display = "none";
       });
+
+      // Build formData
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append("image", f));
-      fetch("/upload", {
-        method: "POST",
-        body: formData
-      })
+
+      // POST /upload
+      fetch("/upload", { method: "POST", body: formData })
         .then(r => r.json())
         .then(res => {
           document.getElementById("spinner").style.display = "none";
-
           const preview = document.getElementById("uploadPreview");
-          preview.innerHTML = "";                      // 1) clear old
+          preview.innerHTML = "";
 
           if (res.image_urls?.length) {
             uploadedImageUrls = res.image_urls;
             document.getElementById("uploadStatus").textContent = "Upload successful!";
             document.querySelectorAll(".stylizeBtn").forEach(btn => btn.style.display = "block");
 
-            // 2) show thumbnails
+            // Show thumbnails
             res.image_urls.forEach(url => {
               const img = document.createElement("img");
               img.src = url;
               preview.appendChild(img);
             });
-
           } else {
             document.getElementById("uploadStatus").textContent = "Upload failed.";
           }
@@ -370,25 +374,28 @@
           console.error(err);
         });
 
-
+      // Hook up Stylize buttons (inside change so they capture the new URLs)
       document.querySelectorAll(".stylizeBtn").forEach(btn => {
         btn.addEventListener("click", async function () {
           document.querySelectorAll(".stylizeBtn").forEach(b => b.classList.remove("active"));
           this.classList.add("active");
           const style = this.dataset.style;
           document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = true);
+
           if (!uploadedImageUrls.length) return;
+
           document.getElementById("uploadStatus").textContent = `Stylizing (${style})...`;
           const gallery = document.getElementById("outputGallery");
           gallery.innerHTML = "";
+
           try {
-            const res = await fetch("/stylize", {
+            const resp = await fetch("/stylize", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ image_urls: uploadedImageUrls, style })
             });
-            const { stylized, remaining_credits } = await res.json();
-            gallery.innerHTML = "";
+            const { stylized, remaining_credits } = await resp.json();
+
             stylized.forEach((it, i) => {
               const d = document.createElement("div");
               d.className = "output-item";
@@ -401,6 +408,7 @@
               d.append(img, a);
               gallery.append(d);
             });
+
             document.getElementById("creditsDisplay").textContent = `Credits: ${remaining_credits}`;
             document.getElementById("uploadStatus").textContent = "All done!";
             document.getElementById("downloadAllBtn").style.display = "block";
@@ -408,43 +416,51 @@
             console.error(e);
             document.getElementById("uploadStatus").textContent = "Stylization failed.";
           }
+
           document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = false);
         });
       });
 
+      // Download All button inside the change handler so it sees the freshly built gallery
       document.getElementById("downloadAllBtn").addEventListener("click", () => {
-        const links = document.querySelectorAll("#outputGallery a");
-        links.forEach((l, i) => setTimeout(() => l.click(), i * 600));
+        document.querySelectorAll("#outputGallery a")
+          .forEach((l, i) => setTimeout(() => l.click(), i * 600));
       });
 
-      function openModal(type) {
-        document.getElementById("modalTitle").textContent = type === "report" ? "Report Issue" : "Support";
-        document.getElementById("supportModal").style.display = "block";
+    }); // ←←← closes the 'change' listener
+
+    // 2) Modal & Support logic (outside of the change listener)
+    function openModal(type) {
+      document.getElementById("modalTitle").textContent =
+        type === "report" ? "Report Issue" : "Support";
+      document.getElementById("supportModal").style.display = "block";
+    }
+    function closeModal() {
+      document.getElementById("supportModal").style.display = "none";
+      document.getElementById("supportForm").reset();
+    }
+    document.getElementById("supportForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const u = e.target.username.value;
+      const m = e.target.message.value;
+      const t = document.getElementById("modalTitle").innerText.includes("Report")
+        ? "Report" : "Support";
+      try {
+        const r = await fetch("/send-support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, message: m, topic: t })
+        });
+        const j = await r.json();
+        alert(j.success ? "✅ Sent!" : "❌ Failed.");
+        if (j.success) closeModal();
+      } catch {
+        alert("❌ Error sending.");
       }
-      function closeModal() {
-        document.getElementById("supportModal").style.display = "none";
-        document.getElementById("supportForm").reset();
-      }
-      document.getElementById("supportForm").addEventListener("submit", async e => {
-        e.preventDefault();
-        const u = document.querySelector("#supportForm [name=username]").value;
-        const m = document.querySelector("#supportForm [name=message]").value;
-        const t = document.getElementById("modalTitle").innerText.includes("Report") ? "Report" : "Support";
-        try {
-          const r = await fetch("/send-support", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: u, message: m, topic: t })
-          });
-          const j = await r.json();
-          alert(j.success ? "✅ Sent!" : "❌ Failed.");
-          if (j.success) closeModal();
-        } catch (err) { console.error(err); alert("❌ Error."); }
-      });
-      window.addEventListener("click", e => {
-        if (e.target.id === "supportModal") closeModal();
-      });
+    });
+    window.addEventListener("click", e => {
+      if (e.target.id === "supportModal") closeModal();
+    });
   </script>
 </body>
-
 </html>
