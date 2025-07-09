@@ -278,47 +278,50 @@
         Welcome,<br>{{ username }}
       </div>
     </div>
-    <div id="creditsDisplay" style="color:white; font-weight:bold; font-size:20px;">
-      Credits: {{ credits }}
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div id="creditsDisplay" style="color:white; font-weight:bold; font-size:20px;">
+        Credits: {{ credits }}
+      </div>
+      <button id="instructionsBtn" class="support-btn">📖 Instructions</button>
     </div>
   </div>
 
   <h1>Upload Photo to Stylize</h1>
 
   <div class="main">
-  <!-- 1) Upload & Style -->
-  <div class="upload-section">
-    <div style="text-align:center;">
-      <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
-      <input type="file" id="imageInput" name="image" accept="image/*" multiple>
+    <!-- 1) Upload & Style -->
+    <div class="upload-section">
+      <div style="text-align:center;">
+        <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
+        <input type="file" id="imageInput" name="image" accept="image/*" multiple>
+      </div>
+
+      <!-- style buttons will now line up in a row -->
+      <div id="styleButtons">
+        <button class="stylizeBtn" data-style="anime">🎨 Anime</button>
+        <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
+        <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
+        <button class="stylizeBtn" data-style="disney">👓 Disney</button>
+      </div>
+
+      <p id="uploadStatus"></p>
+      <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
+        <div class="loader"></div>
+      </div>
     </div>
 
-    <!-- style buttons will now line up in a row -->
-    <div id="styleButtons">
-      <button class="stylizeBtn" data-style="anime">🎨 Anime</button>
-      <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
-      <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
-      <button class="stylizeBtn" data-style="disney">👓 Disney</button>
-    </div>
+    <!-- 2) Preview -->
+    <div id="uploadPreview"></div>
 
-    <p id="uploadStatus"></p>
-    <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
-      <div class="loader"></div>
+    <!-- 3) Results Gallery -->
+    <div class="results-section">
+      <h3>Results</h3>
+      <div id="outputGallery"></div>
+      <button id="downloadAllBtn" style="display:none; margin-top:20px;">
+        Download All Stylized Images
+      </button>
     </div>
   </div>
-
-  <!-- 2) Preview -->
-  <div id="uploadPreview"></div>
-
-  <!-- 3) Results Gallery -->
-  <div class="results-section">
-    <h3>Results</h3>
-    <div id="outputGallery"></div>
-    <button id="downloadAllBtn" style="display:none; margin-top:20px;">
-      Download All Stylized Images
-    </button>
-  </div>
-</div>
 
 
   <!-- Support Buttons & Modal -->
@@ -337,6 +340,27 @@
         <textarea name="message" rows="5" required></textarea>
         <button type="submit">Submit</button>
       </form>
+    </div>
+  </div>
+
+  <div id="instructionsModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeInstructions()">&times;</span>
+      <h2>How to Use</h2>
+      <ul>
+        <li>Select 1–5 images with the “⬆️ Choose Images” button. (hold ctrl to select multiple)</li>
+        <li>Click one of the style buttons (Anime, Pixar, Comic, Disney).</li>
+        <li>Wait for the AI to render—your “before” thumbnails stay above.</li>
+        <li>Your “after” stylized images appear below with download links.</li>
+        <li>You get 20 credits per day; each stylization uses one credit.</li>
+      </ul>
+      <h2>Tips</h2>
+      <ul>
+        <li>Hold 'ctrl' to select multiple images at once or zoom in photo selctor</li>
+        <li>Avoid groups with 6+ people unless its very detailed, up close where frame is filled (risk of fail render)</li>
+        <li>Make sure photos are crisp and not blurry</li>
+        <li>In rare cases program might generate an extra person-> Use different theme or crop photo</li>
+      </ul>
     </div>
   </div>
 
@@ -489,6 +513,22 @@
     });
     window.addEventListener("click", e => {
       if (e.target.id === "supportModal") closeModal();
+    });
+
+    // Show instructions
+    document.getElementById("instructionsBtn").addEventListener("click", () => {
+      document.getElementById("instructionsModal").style.display = "block";
+    });
+
+    function closeInstructions() {
+      document.getElementById("instructionsModal").style.display = "none";
+    }
+
+    // Close instructions if user clicks outside
+    window.addEventListener("click", e => {
+      if (e.target.id === "instructionsModal") {
+        closeInstructions();
+      }
     });
   </script>
 
