@@ -42,7 +42,7 @@ USERS = {
     "geometry": "Geotest1",
     "alexpix": "Pix2025",
     "deepdish": "1pizza",
-    "user10": "photo10"
+    "vicentaadmin": "welcome1"
 }
 
 # User tracking model
