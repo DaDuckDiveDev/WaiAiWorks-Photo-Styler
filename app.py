@@ -42,7 +42,12 @@ USERS = {
     "geometry": "Geotest1",
     "alexpix": "Pix2025",
     "deepdish": "1pizza",
-    "vicentaadmin": "welcome1"
+    "vicentaadmin": "welcome1",
+    "vicentauser1": "vicenta1",
+    "vicentauser2": "vicenta2",
+    "vicentauser3": "vicenta3",
+    "vicentauser4": "vicenta4",
+    "vicentauser5": "vicenta5",
 }
 
 # User tracking model
