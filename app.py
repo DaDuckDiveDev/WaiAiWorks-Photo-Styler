@@ -6,16 +6,14 @@ from stylize import stylize_image
 import os
 import smtplib
 from email.message import EmailMessage
-from flask import request
 from dotenv import load_dotenv
-import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 load_dotenv()
 
 # App setup
 app = Flask(__name__)
-app.secret_key = "b89e5c6df135af7794a22eb1e084cd6a2b50d2a9db33e07b78d1975a3fc9a639"
+app.secret_key = os.getenv("app.secret_key")
 
 # Flask config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
