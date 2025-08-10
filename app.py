@@ -70,7 +70,7 @@ def ensure_tables_exist():
 
 # Helper: track user actions
 def track_event(username, event_type, count=1):
-    stats = UserTracking.query.get(username)
+    stats = db.session.get(UserTracking, username)
     if not stats:
         stats = UserTracking(username=username)
         db.session.add(stats)
@@ -113,7 +113,8 @@ def index():
         return redirect(url_for("login"))
 
     user = session["user"]
-    stats = UserTracking.query.get(user)
+    stats = db.session.get(UserTracking, user)
+
 
     # Daily reset logic
     if stats and (not stats.last_credit_refresh or stats.last_credit_refresh < date.today()):
@@ -170,7 +171,7 @@ def stylize():
     if not image_urls or not style:
         return jsonify({"error": "Missing image URLs or style"}), 400
 
-    user_stats = UserTracking.query.get(username)
+    user_stats = db.session.get(UserTracking, username)
     if not user_stats:
         return jsonify({"error": "User tracking not found"}), 500
 
