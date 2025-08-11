@@ -230,6 +230,7 @@ def send_report():
     data = request.get_json()
     message_body = data.get("message")
     user = session["user"]
+    topic = data.get("topic", "Support")
 
     if not message_body:
         return jsonify({"error": "Empty message"}), 400
@@ -242,7 +243,7 @@ def send_report():
     msg["From"] = email_user
     msg["To"] = email_to
     msg["Subject"] = f"📣 New Stylizer Report from {user}"
-
+    body = f"User: {user}\nTopic: {topic}\n\nMessage:\n{message_body}"
     body = f"User: {user}\n\nMessage:\n{message_body}"
     msg.attach(MIMEText(body, "plain"))
 
