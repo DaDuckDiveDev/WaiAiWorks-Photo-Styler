@@ -237,7 +237,7 @@ def send_report():
 
     email_user = os.environ.get("EMAIL_USER")
     email_pass = os.environ.get("EMAIL_PASS")
-    email_to = os.environ.get("EMAIL_RECEIVER") or email_user
+    email_to = os.environ.get("EMAIL_RECEIVER")
 
     # Basic env validation
     if not email_user or not email_pass or not email_to:

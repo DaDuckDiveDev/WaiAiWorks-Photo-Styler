@@ -514,7 +514,7 @@
       const t = document.getElementById("modalTitle").innerText.includes("Report")
         ? "Report" : "Support";
       try {
-        const r = await fetch("/send-support", {
+        const r = await fetch("/send-report", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: m, topic: t }) 
