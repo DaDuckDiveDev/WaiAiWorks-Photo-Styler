@@ -227,10 +227,10 @@ def send_report():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     message_body = data.get("message")
-    user = session["user"]
     topic = data.get("topic", "Support")
+    user = session["user"]
 
     if not message_body:
         return jsonify({"error": "Empty message"}), 400
@@ -239,12 +239,16 @@ def send_report():
     email_pass = os.environ.get("EMAIL_PASS")
     email_to = os.environ.get("EMAIL_RECEIVER") or email_user
 
+    # Basic env validation
+    if not email_user or not email_pass or not email_to:
+        return jsonify({"error": "Email configuration missing"}), 500
+
     msg = MIMEMultipart()
     msg["From"] = email_user
     msg["To"] = email_to
-    msg["Subject"] = f"📣 New Stylizer Report from {user}"
+    msg["Subject"] = f"📣 {topic} — New Stylizer message from {user}"
+
     body = f"User: {user}\nTopic: {topic}\n\nMessage:\n{message_body}"
-    body = f"User: {user}\n\nMessage:\n{message_body}"
     msg.attach(MIMEText(body, "plain"))
 
     try:
@@ -257,6 +261,7 @@ def send_report():
     except Exception as e:
         print(f"Email send error: {e}")
         return jsonify({"error": "Failed to send email"}), 500
+
 
 
 if __name__ == "__main__":
