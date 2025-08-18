@@ -71,9 +71,19 @@ class UserTracking(db.Model):
     uploads = db.Column(db.Integer, default=0)
     downloads = db.Column(db.Integer, default=0)
     stylizations = db.Column(db.Integer, default=0)
-    credits = db.Column(db.Integer, default=20)
+    credits = db.Column(db.Integer, default=0)
     last_credit_refresh = db.Column(db.Date)
     last_login = db.Column(db.DateTime)
+
+# Billing ledger: immutable records of billable overage units
+class BillingLedger(db.Model):
+    __tablename__ = "billing_ledger"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(50), db.ForeignKey("user_tracking.username"), index=True, nullable=False)
+    event = db.Column(db.String(32), nullable=False)          # e.g., 'stylize_overage'
+    units = db.Column(db.Integer, nullable=False, default=0)  # how many overage stylizations
+    at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
 
 # Create tables
 @app.before_request
@@ -92,7 +102,7 @@ def track_event(username, event_type, count=1):
     # 🔁 Daily credit refresh
     today = date.today()
     if stats.last_credit_refresh != today:
-        stats.credits = 20  # default daily credit refresh
+        stats.credits = 0  # default daily credit refresh
         stats.last_credit_refresh = today
 
     if event_type == "login":
@@ -132,7 +142,7 @@ def index():
 
     # Daily reset logic
     if stats and (not stats.last_credit_refresh or stats.last_credit_refresh < date.today()):
-        stats.credits = 20
+        stats.credits = 0
         stats.last_credit_refresh = date.today()
         db.session.commit()
 
@@ -189,15 +199,14 @@ def stylize():
     if not user_stats:
         return jsonify({"error": "User tracking not found"}), 500
 
-    # ✅ Reset credits once a day
+    # ✅ Daily refresh (keeps your existing behavior)
     if not user_stats.last_credit_refresh or user_stats.last_credit_refresh < date.today():
-        user_stats.credits = 20
+        user_stats.credits = 0
         user_stats.last_credit_refresh = date.today()
         db.session.commit()
 
     results = []
     count = 0
-
     for url in image_urls:
         try:
             output_path = stylize_image(url, style)
@@ -207,12 +216,59 @@ def stylize():
         except Exception as e:
             print(f"Stylization error for {url}: {e}")
 
-    if count > 0:
-        track_event(username, "stylizations", count=count)
-        user_stats.credits -= count  # 🔻 Allow negative credits
-        db.session.commit()
+    # Nothing processed — return early
+    if count == 0:
+        return jsonify({
+            "stylized": [],
+            "credits_used": 0,
+            "free_credits_used": 0,
+            "paid_units": 0,
+            "credits_before": user_stats.credits,
+            "credits_after": user_stats.credits,
+            "charge": {"unit_price_cents": 10, "total_cents": 0},
+        })
 
-    return jsonify({"stylized": results, "remaining_credits": user_stats.credits})
+    # ---- NEW: calculate “from now” usage for this request
+    credits_before = int(user_stats.credits or 0)
+    free_credits_used = max(0, min(credits_before, count))
+    paid_units = max(0, count - free_credits_used)
+    credits_after = credits_before - count  # may be negative if you allow it
+
+    # Track usage & update credits
+    track_event(username, "stylizations", count=count)
+    user_stats.credits = credits_after
+
+    # Optional: write a single ledger row for overage
+    if paid_units > 0:
+        try:
+            db.session.add(BillingLedger(
+                username=username,
+                event="stylize_overage",
+                units=paid_units,
+                at=datetime.utcnow(),
+            ))
+        except NameError:
+            # BillingLedger not defined — skip silently or log
+            pass
+
+    db.session.commit()
+
+    # Pricing math for the response (10 cents per paid unit)
+    unit_price_cents = 10
+    total_cents = paid_units * unit_price_cents
+
+    return jsonify({
+        "stylized": results,
+        "credits_used": count,
+        "free_credits_used": free_credits_used,
+        "paid_units": paid_units,
+        "credits_after": credits_after,
+        "charge": {
+            "unit_price_cents": unit_price_cents,
+            "total_cents": total_cents
+        }
+    })
+
 
     
 @app.route("/track-download")
