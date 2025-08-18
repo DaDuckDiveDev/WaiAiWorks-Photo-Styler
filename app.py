@@ -20,7 +20,12 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Business config: turn CSV env var into a set
-app.config["ALEKSEI_RESTAURANTS"] = {"Aleksei1", "Aleksei2", "Aleksei3"}
+ADMIN_VISIBLE_USERS = {
+    "admin": "__ALL__", # super admin sees everyone
+    "AlekseiAdmin": {"Aleksei1", "Aleksei2", "Aleksei3"},
+}
+# Who is allowed to open /admin/stats
+ADMINS = set(ADMIN_VISIBLE_USERS.keys())
 
 # Init DB
 db = SQLAlchemy(app)
@@ -223,25 +228,19 @@ def track_download():
     return send_file(path, as_attachment=True)
     
 @app.route("/admin/stats")
-def view_stats():
-    if session.get("user") != "admin":
+def admin_stats():
+    user = session.get("user")
+    if user not in ADMINS:
         return "Unauthorized", 403
 
-    stats = UserTracking.query.order_by(UserTracking.username).all()
-    return render_template("stats.html", stats=stats)
-    
-@app.route("/aleksei/")
-def view_stats():
-    if session.get("user") != "aleksei":
-        return "Unauthorized", 403
-    stats = (
-        UserTracking.query
-        .filter(UserTracking.restaurant.in_(list(app.config["ALEKSEI_RESTAURANTS"])))
-        .order_by(UserTracking.username)
-        .all()
-    )
-    return render_template("stats.html", stats=stats)
+    visibility = ADMIN_VISIBLE_USERS.get(user, set())
 
+    q = UserTracking.query
+    if visibility != "__ALL__":
+        q = q.filter(UserTracking.username.in_(list(visibility)))
+
+    stats = q.order_by(UserTracking.username).all()
+    return render_template("stats.html", stats=stats, admin=user)
 
 @app.route("/send-report", methods=["POST"])
 def send_report():
