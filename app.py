@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from stylize import stylize_image
 import os
 import smtplib
@@ -9,6 +9,8 @@ from email.message import EmailMessage
 from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from collections import defaultdict
+from decimal import Decimal
 load_dotenv()
 
 # App setup
@@ -24,6 +26,7 @@ ADMIN_VISIBLE_USERS = {
     "admin": "__ALL__", # super admin sees everyone
     "alekseiadmin": {"aleksei", "maria", "amrita", "alekseiadmin"},
 }
+ALEKSEI_USERS = ["aleksei", "maria", "amrita", "alekseiadmin"]
 # Who is allowed to open /admin/stats
 ADMINS = set(ADMIN_VISIBLE_USERS.keys())
 
@@ -241,6 +244,64 @@ def admin_stats():
 
     stats = q.order_by(UserTracking.username).all()
     return render_template("stats.html", stats=stats, admin=user)
+
+@app.route("/admin/biweekly")
+def biweekly_billing():
+    admin = session.get("user")
+    if admin not in {"admin", "alekseiadmin"}:
+        return "Unauthorized", 403
+
+    # Allowed usernames for this admin
+    visible_users = ALEKSEI_USERS if admin == "alekseiadmin" else ALEKSEI_USERS  # adjust if super-admin later
+
+    # Determine biweekly window starting Monday
+    start_param = request.args.get("start")  # optional YYYY-MM-DD (will normalize to Monday)
+    today = date.today()
+    start_monday = today - timedelta(days=today.weekday())  # Monday this week
+    if start_param:
+        d = datetime.strptime(start_param, "%Y-%m-%d").date()
+        start_monday = d - timedelta(days=d.weekday())       # normalize to Monday
+
+    start_dt = datetime.combine(start_monday, datetime.min.time())
+    end_dt = start_dt + timedelta(days=14)
+
+    # Fetch ledger entries for the window & users
+    q = (BillingLedger.query
+         .filter(BillingLedger.event == "stylize_overage",
+                 BillingLedger.at >= start_dt,
+                 BillingLedger.at < end_dt,
+                 BillingLedger.username.in_(visible_users)))
+    entries = q.all()
+
+    # Build a 4x14 table: 3 users + "Total" rows, 14 day columns
+    days = [start_monday + timedelta(days=i) for i in range(14)]
+    per_user = {u: [0]*14 for u in visible_users}
+
+    for e in entries:
+        idx = (e.at.date() - start_monday).days
+        if 0 <= idx < 14:
+            per_user[e.username][idx] += int(e.units or 0)
+
+    col_totals = [sum(per_user[u][i] for u in visible_users) for i in range(14)]
+    grand_total_units = sum(col_totals)
+
+    # price = $0.10 per unit
+    unit_price = Decimal("0.10")
+    amount = unit_price * grand_total_units
+
+    return render_template(
+        "biweekly.html",
+        users=visible_users,
+        days=days,
+        per_user=per_user,
+        col_totals=col_totals,
+        grand_total_units=grand_total_units,
+        unit_price=unit_price,
+        amount=amount,
+        start=start_monday,
+        end=(end_dt.date() - timedelta(days=1)),  # inclusive end date
+        admin=admin
+    )
 
 @app.route("/send-report", methods=["POST"])
 def send_report():
