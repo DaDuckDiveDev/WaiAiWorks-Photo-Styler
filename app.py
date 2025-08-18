@@ -22,7 +22,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Business config: turn CSV env var into a set
 ADMIN_VISIBLE_USERS = {
     "admin": "__ALL__", # super admin sees everyone
-    "AlekseiAdmin": {"aleksei", "maria", "amrita", "alekseiadmin"},
+    "alekseiadmin": {"aleksei", "maria", "amrita", "alekseiadmin"},
 }
 # Who is allowed to open /admin/stats
 ADMINS = set(ADMIN_VISIBLE_USERS.keys())
@@ -47,7 +47,6 @@ USERS = {
     "dksteak": "photoDK",
     "geometry": "Geotest1",
     "alexpix": "Pix2025",
-    #"deepdish": "1pizza",
     "vicentaadmin": "welcome1",
     "vicentauser1": "vicenta1",
     "vicentauser2": "vicenta2",
