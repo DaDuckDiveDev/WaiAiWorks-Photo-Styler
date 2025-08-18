@@ -19,6 +19,9 @@ app.secret_key = os.getenv("app.secret_key")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# Business config: turn CSV env var into a set
+app.config["ALEKSEI_RESTAURANTS"] = {"Aleksei1", "Aleksei2", "Aleksei3"}
+
 # Init DB
 db = SQLAlchemy(app)
 
@@ -46,7 +49,12 @@ USERS = {
     "vicentauser3": "vicenta3",
     "vicentauser4": "vicenta4",
     "vicentauser5": "vicenta5",
+    "AlekseiAdmin": "AlekseiAdminAlekseiAdmin!",
+    "Aleksei1": "1pizza",
+    "Aleksei2": "2pizza",
+    "Aleksei3": "3pizza",
 }
+
 
 # User tracking model
 class UserTracking(db.Model):
@@ -220,7 +228,20 @@ def view_stats():
         return "Unauthorized", 403
 
     stats = UserTracking.query.order_by(UserTracking.username).all()
-    return render_template("stats.html", stats=stats)    
+    return render_template("stats.html", stats=stats)
+    
+@app.route("/aleksei/")
+def view_stats():
+    if session.get("user") != "aleksei":
+        return "Unauthorized", 403
+    stats = (
+        UserTracking.query
+        .filter(UserTracking.restaurant.in_(list(app.config["ALEKSEI_RESTAURANTS"])))
+        .order_by(UserTracking.username)
+        .all()
+    )
+    return render_template("stats.html", stats=stats)
+
 
 @app.route("/send-report", methods=["POST"])
 def send_report():
