@@ -173,6 +173,41 @@
       margin: auto;
     }
 
+    /* Reusable hidden utility */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Download All button */
+    .download-all-btn {
+      font-weight: bold;
+      padding: 12px 26px;
+      font-size: 16px;
+      color: white;
+      background-color: rgba(64, 174, 215, 0.85);
+      border: 2px solid white;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+      transition: transform 0.08s ease, box-shadow 0.2s ease, background-color 0.15s ease;
+    }
+
+    .download-all-btn:hover {
+      background-color: rgba(44, 144, 185, 0.95);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+    }
+
+    .download-all-btn:active {
+      transform: translateY(1px);
+    }
+
+    .download-all-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      filter: grayscale(10%);
+    }
+
     @keyframes spin {
       0% {
         transform: rotate(0deg);
@@ -327,8 +362,8 @@
     <div class="results-section">
       <h3>Results</h3>
       <div id="outputGallery"></div>
-      <button id="downloadAllBtn" style="display:none; margin-top:20px;">
-        Download All Stylized Images
+      <button id="downloadAllBtn" class="download-all-btn hidden" type="button">
+        ⬇️ Download All
       </button>
     </div>
   </div>
@@ -402,7 +437,7 @@
       uploadedImageUrls = [];
       document.getElementById("uploadPreview").innerHTML = "";
       document.getElementById("outputGallery").innerHTML = "";
-      document.getElementById("downloadAllBtn").style.display = "none";
+      document.getElementById("downloadAllBtn").classList.add("hidden");
       document.getElementById("uploadStatus").textContent = "Uploading...";
       document.getElementById("spinner").style.display = "block";
       document.querySelectorAll(".stylizeBtn").forEach(btn => {
@@ -494,7 +529,7 @@
             }
 
             document.getElementById("uploadStatus").textContent = debug ? "All done (DEBUG)!" : "All done!";
-            document.getElementById("downloadAllBtn").style.display = "block";
+            document.getElementById("downloadAllBtn").classList.remove("hidden");
           } catch (e) {
             console.error(e);
             document.getElementById("uploadStatus").textContent = "Stylization failed.";
@@ -505,9 +540,17 @@
       });
 
       // Download All
-      document.getElementById("downloadAllBtn").addEventListener("click", () => {
-        document.querySelectorAll("#outputGallery a")
-          .forEach((l, i) => setTimeout(() => l.click(), i * 600));
+      const downloadAllBtn = document.getElementById("downloadAllBtn");
+      downloadAllBtn.addEventListener("click", (e) => {
+        const links = Array.from(document.querySelectorAll("#outputGallery a"));
+        if (!links.length) return;
+
+        downloadAllBtn.disabled = true;           // 🔒 disable
+        links.forEach((l, i) => setTimeout(() => l.click(), i * 600));
+
+        // Re-enable after the last scheduled click finishes
+        const totalDelay = (links.length - 1) * 600 + 700;
+        setTimeout(() => { downloadAllBtn.disabled = false; }, totalDelay);
       });
 
     }); // ←←← closes the 'change' event listener
