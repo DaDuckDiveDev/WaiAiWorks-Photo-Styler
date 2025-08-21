@@ -309,6 +309,9 @@
         <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
         <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
         <button class="stylizeBtn" data-style="disney">👓 Disney</button>
+        {% if debug_enabled %}
+        <button id="debugBtn">🧪 Debug (no API)</button>
+        {% endif %}
       </div>
 
       <p id="uploadStatus"></p>
@@ -363,9 +366,11 @@
       </ul>
       <h2>RULES</h2>
       <ul>
-        <li>Avoid groups with 6+ people unless its very detailed and up close where frame is filled (risk of fail render)</li>
+        <li>Avoid groups with 6+ people unless its very detailed and up close where frame is filled (risk of fail
+          render)</li>
         <li>Make sure photos are crisp and not blurry</li>
-        <li>Vertical Photo: Make sure its vertical (edit tilt 90 degrees or enable auto tilt feature on your camera settings)</li>
+        <li>Vertical Photo: Make sure its vertical (edit tilt 90 degrees or enable auto tilt feature on your camera
+          settings)</li>
         <li>Ensure everyone is looking at camera, side profile/closed eyes increases change of bad render</li>
       </ul>
       <h2>Tips</h2>
@@ -374,7 +379,8 @@
         <li>In rare cases program might generate an extra person-> Use different theme or crop photo</li>
         <li>6% error/failed render</li>
         <li>2D Animation/Anime sells best followed by 3D and Comic is very niche.</li>
-        <li>Learn how the AI works: what photos does it like? which style handles best lighting/poses? Find your style and Enjoy!</li>
+        <li>Learn how the AI works: what photos does it like? which style handles best lighting/poses? Find your style
+          and Enjoy!</li>
       </ul>
     </div>
   </div>
@@ -448,11 +454,15 @@
           document.querySelectorAll(".stylizeBtn").forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
           const style = btn.dataset.style;
+          const isDebug = btn.id === "debugBtn";
+
           document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = true);
 
           if (!uploadedImageUrls.length) return;
+          document.getElementById("uploadStatus").textContent = isDebug
+            ? `Stylizing in DEBUG (no API/billing) — ${style}...`
+            : `Stylizing (${style})...`;
 
-          document.getElementById("uploadStatus").textContent = `Stylizing (${style})...`;
           const gallery = document.getElementById("outputGallery");
           gallery.innerHTML = "";
 
@@ -460,9 +470,9 @@
             const resp = await fetch("/stylize", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ image_urls: uploadedImageUrls, style })
+              body: JSON.stringify({ image_urls: uploadedImageUrls, style, debug: isDebug })
             });
-            const { stylized, remaining_credits } = await resp.json();
+            const { stylized, credits_after, debug } = await resp.json();
 
             stylized.forEach((it, i) => {
               const d = document.createElement("div");
@@ -477,15 +487,20 @@
               gallery.append(d);
             });
 
-            document.getElementById("creditsDisplay").textContent = `Credits: ${remaining_credits}`;
-            document.getElementById("uploadStatus").textContent = "All done!";
+            if (!debug) {
+              document.getElementById("creditsDisplay").textContent = `Credits: ${credits_after}`;
+            } else {
+              document.getElementById("creditsDisplay").textContent = `Credits: ${document.getElementById("creditsDisplay").textContent.split(': ')[1] || '{{ credits }}'} (unchanged in DEBUG)`;
+            }
+
+            document.getElementById("uploadStatus").textContent = debug ? "All done (DEBUG)!" : "All done!";
             document.getElementById("downloadAllBtn").style.display = "block";
           } catch (e) {
             console.error(e);
             document.getElementById("uploadStatus").textContent = "Stylization failed.";
+          } finally {
+            document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = false);
           }
-
-          document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = false);
         };
       });
 
@@ -517,7 +532,7 @@
         const r = await fetch("/send-report", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: m, topic: t }) 
+          body: JSON.stringify({ message: m, topic: t })
         });
         const j = await r.json();
         alert(j.success ? "✅ Sent!" : "❌ Failed.");

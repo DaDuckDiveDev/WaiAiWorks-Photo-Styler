@@ -12,7 +12,10 @@ from email.mime.multipart import MIMEMultipart
 from collections import defaultdict
 from decimal import Decimal
 from zoneinfo import ZoneInfo  # stdlib in Python 3.9+
-
+import shutil
+from urllib.parse import urlparse
+from pathlib import Path
+DEBUG_FAKE_STYLIZE = os.getenv("DEBUG_FAKE_STYLIZE", "false").lower() in {"1","true","yes"}
 CHICAGO_TZ = ZoneInfo("America/Chicago")
 
 def monday_of(d: date) -> date:
@@ -39,7 +42,7 @@ load_dotenv()
 
 # App setup
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY, dev-only-change-me")
+app.secret_key = os.getenv("SECRET_KEY", "dev-only-change-me")
 
 # Flask config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
@@ -128,6 +131,26 @@ def track_event(username, event_type, count=1):
 
     db.session.commit()
 
+def _mock_stylize_file(input_url: str, style: str) -> str:
+    """
+    Copy uploaded image to outputs with a style suffix.
+    Returns relative output path like 'static/outputs/filename_style.jpg'
+    """
+    # input_url is like https://host/static/uploads/foo.jpg
+    parsed = urlparse(input_url)
+    # local path for the upload:
+    # assume URL path starts with /static/uploads/...
+    upath = parsed.path.lstrip("/")  # 'static/uploads/foo.jpg'
+    src = Path(upath)
+    if not src.exists():
+        raise FileNotFoundError(f"Missing: {src}")
+    # build output name
+    stem = src.stem
+    ext = src.suffix or ".jpg"
+    out = Path(OUTPUT_FOLDER) / f"{stem}_{style}{ext}"
+    shutil.copyfile(src, out)
+    return str(out).replace("\\", "/")    
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -165,7 +188,10 @@ def index():
         db.session.commit()
 
 
-    return render_template("index.html", username=user, credits=stats.credits if stats else 0)
+    return render_template("index.html", 
+                           username=user, 
+                           credits=stats.credits if stats else 0,
+                           debug_enabled=DEBUG_FAKE_STYLIZE)
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -205,11 +231,13 @@ def upload():
 def stylize():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
-
+    
+    use_mock = (DEBUG_FAKE_STYLIZE or USE_DEBUG_FAKE or debug_request)
     username = session["user"]
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     image_urls = data.get("image_urls")
     style = data.get("style")
+    debug_request = bool(data.get("debug"))
 
     if not image_urls or not style:
         return jsonify({"error": "Missing image URLs or style"}), 400
@@ -218,25 +246,32 @@ def stylize():
     if not user_stats:
         return jsonify({"error": "User tracking not found"}), 500
 
-    # ✅ Daily refresh (keeps your existing behavior)
+    # Chicago-time daily refresh
     today_ct = datetime.now(CHICAGO_TZ).date()
     if not user_stats.last_credit_refresh or user_stats.last_credit_refresh < today_ct:
         user_stats.credits = 0
         user_stats.last_credit_refresh = today_ct
         db.session.commit()
 
+    # Decide mode
+    use_mock = DEBUG_FAKE_STYLIZE or debug_request
+
     results = []
     count = 0
+
     for url in image_urls:
         try:
-            output_path = stylize_image(url, style)
+            if use_mock:
+                output_path = _mock_stylize_file(url, style)
+            else:
+                output_path = stylize_image(url, style)  # real Replicate-backed call
             if output_path:
                 results.append({"input": url, "output_path": output_path})
                 count += 1
         except Exception as e:
             print(f"Stylization error for {url}: {e}")
 
-    # Nothing processed — return early
+    # If nothing worked
     if count == 0:
         return jsonify({
             "stylized": [],
@@ -246,49 +281,51 @@ def stylize():
             "credits_before": user_stats.credits,
             "credits_after": user_stats.credits,
             "charge": {"unit_price_cents": 10, "total_cents": 0},
+            "debug": use_mock,
         })
 
-    # ---- NEW: calculate “from now” usage for this request
-    credits_before = int(user_stats.credits or 0)
-    free_credits_used = max(0, min(credits_before, count))
-    paid_units = max(0, count - free_credits_used)
-    credits_after = credits_before - count  # may be negative if you allow it
+    # Accounting
+    if use_mock:
+        # In mock mode: DO NOT consume credits, DO NOT bill, but still log stylizations count if you want
+        track_event(username, "stylizations", count=count)
+        credits_after = int(user_stats.credits or 0)  # unchanged
+        free_credits_used = 0
+        paid_units = 0
+        total_cents = 0
+    else:
+        # Real mode: same logic you had
+        credits_before = int(user_stats.credits or 0)
+        free_credits_used = max(0, min(credits_before, count))
+        paid_units = max(0, count - free_credits_used)
+        credits_after = credits_before - count
+        track_event(username, "stylizations", count=count)
+        user_stats.credits = credits_after
 
-    # Track usage & update credits
-    track_event(username, "stylizations", count=count)
-    user_stats.credits = credits_after
-
-    # Optional: write a single ledger row for overage
-    if paid_units > 0:
-        try:
+        if paid_units > 0:
             db.session.add(BillingLedger(
                 username=username,
                 event="stylize_overage",
                 units=paid_units,
                 at=datetime.utcnow(),
             ))
-        except NameError:
-            # BillingLedger not defined — skip silently or log
-            pass
 
-    db.session.commit()
+        db.session.commit()
 
-    # Pricing math for the response (10 cents per paid unit)
-    unit_price_cents = 10
-    total_cents = paid_units * unit_price_cents
+        unit_price_cents = 10
+        total_cents = paid_units * unit_price_cents
 
     return jsonify({
         "stylized": results,
-        "credits_used": count,
-        "free_credits_used": free_credits_used,
-        "paid_units": paid_units,
-        "credits_after": credits_after,
+        "credits_used": count if not use_mock else 0,
+        "free_credits_used": free_credits_used if not use_mock else 0,
+        "paid_units": paid_units if not use_mock else 0,
+        "credits_after": credits_after if not use_mock else (user_stats.credits or 0),
         "charge": {
-            "unit_price_cents": unit_price_cents,
+            "unit_price_cents": 10,
             "total_cents": total_cents
-        }
+        },
+        "debug": use_mock,
     })
-
 
     
 @app.route("/track-download")
@@ -430,7 +467,15 @@ def send_report():
         print(f"Email send error: {e}")
         return jsonify({"error": "Failed to send email"}), 500
 
+USE_DEBUG_FAKE = False
 
+@app.route("/admin/debug-toggle")
+def toggle_debug():
+    if session.get("user") not in ADMINS:
+        return "Unauthorized", 403
+    global USE_DEBUG_FAKE
+    USE_DEBUG_FAKE = not USE_DEBUG_FAKE
+    return f"DEBUG_FAKE_STYLIZE now {USE_DEBUG_FAKE}"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
