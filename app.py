@@ -60,8 +60,6 @@ ADMINS = set(ADMIN_VISIBLE_USERS.keys())
 
 # Init DB
 db = SQLAlchemy(app)
-from flask_migrate import Migrate
-migrate = Migrate(app, db)
 
 # File paths
 UPLOAD_FOLDER = "static/uploads"
