@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo  # stdlib in Python 3.9+
 import shutil
 from urllib.parse import urlparse
 from pathlib import Path
+
 DEBUG_FAKE_STYLIZE = os.getenv("DEBUG_FAKE_STYLIZE", "false").lower() in {"1","true","yes"}
 CHICAGO_TZ = ZoneInfo("America/Chicago")
 
@@ -59,6 +60,8 @@ ADMINS = set(ADMIN_VISIBLE_USERS.keys())
 
 # Init DB
 db = SQLAlchemy(app)
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
 
 # File paths
 UPLOAD_FOLDER = "static/uploads"
