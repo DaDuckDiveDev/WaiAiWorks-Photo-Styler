@@ -1,62 +1,114 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Biweekly Billing ({{ start }} → {{ end }})</title>
   <style>
-    table { border-collapse: collapse; width: 100%; font-family: system-ui, sans-serif; }
-    th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: right; }
-    th.sticky { position: sticky; left: 0; background: #fafafa; text-align: left; }
+    :root {
+      --bg: #ffffff;
+      --muted: #fafafa;
+      --line: #e5e7eb; /* tailwind gray-200 */
+      --text: #111827; /* tailwind gray-900 */
+      --text-muted: #6b7280; /* gray-500 */
+      --wknd: #fff7ed; /* amber-50 */
+      --highlight: #f9fafb; /* gray-50 */
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0; padding: 16px 16px 32px; background: var(--bg); color: var(--text);
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
+    }
+    h2 { margin: 0 0 12px; font-weight: 650; letter-spacing: 0.1px; }
+    .sub { color: var(--text-muted); margin-bottom: 12px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; background: white; border: 1px solid var(--line); border-radius: 10px; }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 760px; font-family: inherit; }
+    thead th { position: sticky; top: 0; z-index: 3; background: var(--muted); }
+
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+
+    /* sticky first column across thead/tbody/tfoot */
+    .sticky-col { position: sticky; left: 0; background: white; z-index: 2; }
+    thead .sticky-col { background: var(--muted); z-index: 4; }
+    tfoot .sticky-col { background: white; z-index: 2; }
+
     tfoot td { font-weight: 600; }
+    tbody tr:hover td { background: var(--highlight); }
+
+    .wknd { background: var(--wknd); }
+    thead .wknd { background: #fffbeb; /* deeper for header */ }
+
+    .nowrap { white-space: nowrap; }
+
+    /* make the bottom-right figure feel anchored */
+    tfoot tr:last-child td:last-child { font-size: 1.05em; }
+
+    /* print-friendly */
+    @media print {
+      body { padding: 0; }
+      .table-wrap { border: none; border-radius: 0; }
+      thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
-  <h2>Biweekly Billing — {{ start }} to {{ end }} (starts Mondays)</h2>
+  <h2>Biweekly Billing — {{ start }} to {{ end }} <span class="sub">(starts Mondays)</span></h2>
 
-  <table>
-    <thead>
-      <tr>
-        <th class="sticky">User</th>
-        {% for d in days %}
-          <th>{{ d.strftime("%a\n%m-%d")|replace('\n','<br>')|safe }}</th>
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for u in users %}
+  <div class="table-wrap">
+    <table>
+      <thead>
         <tr>
-          <td class="sticky" style="text-align:left">{{ u }}</td>
-          {% for i in range(14) %}
-            <td>{{ per_user[u][i] }}</td>
+          <th class="sticky-col">User</th>
+          {% for d in days %}
+            {# Weekend shading in the header #}
+            <th class="{% if d.weekday() >= 5 %}wknd{% endif %}">
+              <span class="nowrap">{{ d.strftime('%a') }}</span><br>
+              <span class="nowrap">{{ d.strftime('%m-%d') }}</span>
+            </th>
           {% endfor %}
         </tr>
-      {% endfor %}
-      <!-- Totals row (row #4) -->
-      <tr>
-        <td class="sticky" style="text-align:left"><strong>Total</strong></td>
-        {% for i in range(14) %}
-          <td><strong>{{ col_totals[i] }}</strong></td>
+      </thead>
+
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td class="sticky-col">{{ u }}</td>
+            {% for i in range(14) %}
+              <td class="{% if days[i].weekday() >= 5 %}wknd{% endif %}">{{ per_user[u][i] }}</td>
+            {% endfor %}
+          </tr>
         {% endfor %}
-      </tr>
-    </tbody>
 
-    <!-- Bottom-right sum and $ calculation directly under it -->
-    <tfoot>
-      <tr>
-        <td class="sticky" style="text-align:left">Grand Total Units</td>
-        {% for i in range(13) %}<td></td>{% endfor %}
-        <td><strong>{{ grand_total_units }}</strong></td>
-      </tr>
-      <tr>
-        <td class="sticky" style="text-align:left">{{ unit_price }} × Total</td>
-        {% for i in range(13) %}<td></td>{% endfor %}
-        <td><strong>${{ '%.2f' % amount }}</strong></td>
-      </tr>
-    </tfoot>
-  </table>
+        <!-- Totals row (row #4) -->
+        <tr>
+          <td class="sticky-col"><strong>Total</strong></td>
+          {% for i in range(14) %}
+            <td class="{% if days[i].weekday() >= 5 %}wknd{% endif %}"><strong>{{ col_totals[i] }}</strong></td>
+          {% endfor %}
+        </tr>
+      </tbody>
 
-  <p style="margin-top:10px; font-size:0.9em;">
-    <em>Tip:</em> Change period with <code>?start=YYYY-MM-DD</code> (any date inside the desired 2-week window; it will normalize to the Monday start).
+      <!-- Bottom-right sum and $ calculation directly under it -->
+      <tfoot>
+        <tr>
+          <td class="sticky-col">Grand Total Units</td>
+          {% for i in range(13) %}<td></td>{% endfor %}
+          <td><strong>{{ grand_total_units }}</strong></td>
+        </tr>
+        <tr>
+          <td class="sticky-col">{{ unit_price }} × Total</td>
+          {% for i in range(13) %}<td></td>{% endfor %}
+          <td><strong>${{ '%.2f' % amount }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <p style="margin-top:10px; font-size:0.9em; color:var(--text-muted)">
+    <em>Tip:</em> Change period with <code>?start=YYYY-MM-DD</code> (any date inside the desired 2‑week window; it will normalize to the Monday start).
   </p>
 </body>
 </html>
