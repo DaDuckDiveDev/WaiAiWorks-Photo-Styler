@@ -39,7 +39,7 @@ load_dotenv()
 
 # App setup
 app = Flask(__name__)
-app.secret_key = os.getenv("app.secret_key")
+app.secret_key = os.getenv("SECRET_KEY, dev-only-change-me")
 
 # Flask config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
@@ -107,11 +107,8 @@ class BillingLedger(db.Model):
 
 
 # Create tables
-@app.before_request
-def ensure_tables_exist():
-    if not hasattr(app, 'tables_created'):
-        db.create_all()
-        app.tables_created = True
+with app.app_context():
+    db.create_all()
 
 # Helper: track user actions
 def track_event(username, event_type, count=1):
@@ -159,11 +156,14 @@ def index():
     stats = db.session.get(UserTracking, user)
 
 
-    # Daily reset logic
-    if stats and (not stats.last_credit_refresh or stats.last_credit_refresh < date.today()):
+    # Daily reset logic (Chicago time)
+    if stats:
+        today_ct = datetime.now(CHICAGO_TZ).date()
+    if not stats.last_credit_refresh or stats.last_credit_refresh < today_ct:
         stats.credits = 0
-        stats.last_credit_refresh = date.today()
+        stats.last_credit_refresh = today_ct
         db.session.commit()
+
 
     return render_template("index.html", username=user, credits=stats.credits if stats else 0)
 
@@ -219,9 +219,10 @@ def stylize():
         return jsonify({"error": "User tracking not found"}), 500
 
     # ✅ Daily refresh (keeps your existing behavior)
-    if not user_stats.last_credit_refresh or user_stats.last_credit_refresh < date.today():
+    today_ct = datetime.now(CHICAGO_TZ).date()
+    if not user_stats.last_credit_refresh or user_stats.last_credit_refresh < today_ct:
         user_stats.credits = 0
-        user_stats.last_credit_refresh = date.today()
+        user_stats.last_credit_refresh = today_ct
         db.session.commit()
 
     results = []
@@ -326,41 +327,47 @@ def biweekly_billing():
     if admin not in {"admin", "alekseiadmin"}:
         return "Unauthorized", 403
 
-    # Allowed usernames for this admin
-    visible_users = ALEKSEI_USERS if admin == "alekseiadmin" else ALEKSEI_USERS  # adjust if super-admin later
+    visible_users = ALEKSEI_USERS if admin == "alekseiadmin" else ALEKSEI_USERS
 
-    # Determine biweekly window starting Monday
-    start_param = request.args.get("start")  # optional YYYY-MM-DD (will normalize to Monday)
-    today = date.today()
-    start_monday = today - timedelta(days=today.weekday())  # Monday this week
+    # Determine biweekly window starting Monday *in Chicago time*
+    start_param = request.args.get("start")  # YYYY-MM-DD (any date inside the desired window)
     if start_param:
-        d = datetime.strptime(start_param, "%Y-%m-%d").date()
-        start_monday = d - timedelta(days=d.weekday())       # normalize to Monday
+        d_ct = datetime.strptime(start_param, "%Y-%m-%d").date()
+    else:
+        d_ct = datetime.now(CHICAGO_TZ).date()
 
-    start_dt = datetime.combine(start_monday, datetime.min.time())
-    end_dt = start_dt + timedelta(days=14)
+    start_monday_ct = d_ct - timedelta(days=d_ct.weekday())
+    end_ct_date = start_monday_ct + timedelta(days=14)  # exclusive
 
-    # Fetch ledger entries for the window & users
+    # Build timezone-aware datetimes in CT, then convert to UTC for DB filter
+    start_ct_dt = datetime.combine(start_monday_ct, datetime.min.time(), tzinfo=CHICAGO_TZ)
+    end_ct_dt   = datetime.combine(end_ct_date,   datetime.min.time(), tzinfo=CHICAGO_TZ)
+
+    start_utc = start_ct_dt.astimezone(ZoneInfo("UTC"))
+    end_utc   = end_ct_dt.astimezone(ZoneInfo("UTC"))
+
+    # Fetch ledger entries for the window & users (timestamps stored as UTC)
     q = (BillingLedger.query
          .filter(BillingLedger.event == "stylize_overage",
-                 BillingLedger.at >= start_dt,
-                 BillingLedger.at < end_dt,
+                 BillingLedger.at >= start_utc,
+                 BillingLedger.at <  end_utc,
                  BillingLedger.username.in_(visible_users)))
     entries = q.all()
 
-    # Build a 4x14 table: 3 users + "Total" rows, 14 day columns
-    days = [start_monday + timedelta(days=i) for i in range(14)]
+    # Days (14 columns) as Chicago dates for display
+    days = [start_monday_ct + timedelta(days=i) for i in range(14)]
     per_user = {u: [0]*14 for u in visible_users}
 
     for e in entries:
-        idx = (e.at.date() - start_monday).days
+        # Convert each UTC timestamp to CT date to bucket correctly
+        e_ct_date = e.at.replace(tzinfo=ZoneInfo("UTC")).astimezone(CHICAGO_TZ).date()
+        idx = (e_ct_date - start_monday_ct).days
         if 0 <= idx < 14:
             per_user[e.username][idx] += int(e.units or 0)
 
     col_totals = [sum(per_user[u][i] for u in visible_users) for i in range(14)]
     grand_total_units = sum(col_totals)
 
-    # price = $0.10 per unit
     unit_price = Decimal("0.10")
     amount = unit_price * grand_total_units
 
@@ -373,14 +380,15 @@ def biweekly_billing():
         grand_total_units=grand_total_units,
         unit_price=unit_price,
         amount=amount,
-        start=start_monday,
-        end=(end_dt.date() - timedelta(days=1)),
+        start=start_monday_ct,
+        end=(end_ct_date - timedelta(days=1)),  # inclusive end date (CT)
         admin=admin
     )
     resp = make_response(html)
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
     return resp
+
 
 @app.route("/send-report", methods=["POST"])
 def send_report():
