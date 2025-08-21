@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from datetime import datetime, date, timedelta
@@ -11,6 +11,30 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from collections import defaultdict
 from decimal import Decimal
+from zoneinfo import ZoneInfo  # stdlib in Python 3.9+
+
+CHICAGO_TZ = ZoneInfo("America/Chicago")
+
+def monday_of(d: date) -> date:
+    return d - timedelta(days=d.weekday())
+
+def ensure_daily_and_weekly(stats):
+    # Now in Chicago time
+    now_chicago = datetime.now(CHICAGO_TZ)
+    today_chicago = now_chicago.date()
+
+    # Daily reset
+    if stats.last_credit_refresh != today_chicago:
+        stats.credits = 0
+        stats.last_credit_refresh = today_chicago
+
+    # Weekly reset
+    last_week_mark = monday_of(stats.last_week_refresh or date.min)
+    this_week_mark = monday_of(today_chicago)
+    if last_week_mark < this_week_mark:
+        stats.week_credits = 0
+        stats.last_week_refresh = today_chicago
+
 load_dotenv()
 
 # App setup
@@ -51,12 +75,6 @@ USERS = {
     "geometry": "Geotest1",
     "alexpix": "Pix2025",
     "vicentaadmin": "welcome1",
-    "vicentauser1": "vicenta1",
-    "vicentauser2": "vicenta2",
-    "vicentauser3": "vicenta3",
-    "vicentauser4": "vicenta4",
-    "vicentauser5": "vicenta5",
-
     "alekseiadmin": "alekseiadminalekseiadmin!",
     "maria": "maria1",
     "amrita": "amrita1",
@@ -74,6 +92,9 @@ class UserTracking(db.Model):
     credits = db.Column(db.Integer, default=0)
     last_credit_refresh = db.Column(db.Date)
     last_login = db.Column(db.DateTime)
+     # NEW (for weekly Monday reset)
+    week_credits = db.Column(db.Integer, default=0)          # optional: track weekly usage
+    last_week_refresh = db.Column(db.Date)                   # the date we last refreshed the “week”
 
 # Billing ledger: immutable records of billable overage units
 class BillingLedger(db.Model):
@@ -99,19 +120,17 @@ def track_event(username, event_type, count=1):
         stats = UserTracking(username=username)
         db.session.add(stats)
 
-    # 🔁 Daily credit refresh
-    today = date.today()
-    if stats.last_credit_refresh != today:
-        stats.credits = 0  # default daily credit refresh
-        stats.last_credit_refresh = today
+    # Single source of truth for resets
+    ensure_daily_and_weekly(stats)
 
     if event_type == "login":
-        stats.last_login = datetime.utcnow()
+        stats.last_login = datetime.now(CHICAGO_TZ)
     elif hasattr(stats, event_type):
         current = getattr(stats, event_type) or 0
         setattr(stats, event_type, current + count)
 
     db.session.commit()
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -345,7 +364,7 @@ def biweekly_billing():
     unit_price = Decimal("0.10")
     amount = unit_price * grand_total_units
 
-    return render_template(
+    html = render_template(
         "biweekly.html",
         users=visible_users,
         days=days,
@@ -355,9 +374,13 @@ def biweekly_billing():
         unit_price=unit_price,
         amount=amount,
         start=start_monday,
-        end=(end_dt.date() - timedelta(days=1)),  # inclusive end date
+        end=(end_dt.date() - timedelta(days=1)),
         admin=admin
     )
+    resp = make_response(html)
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
 
 @app.route("/send-report", methods=["POST"])
 def send_report():

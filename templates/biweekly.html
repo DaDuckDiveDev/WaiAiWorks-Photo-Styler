@@ -110,5 +110,22 @@
   <p style="margin-top:10px; font-size:0.9em; color:var(--text-muted)">
     <em>Tip:</em> Change period with <code>?start=YYYY-MM-DD</code> (any date inside the desired 2‑week window; it will normalize to the Monday start).
   </p>
+  <!-- Chicago-time (America/Chicago) auto-refresh at next Monday 00:05 CT -->
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script>
+  (function() {
+    const { DateTime } = luxon;
+    const nowCT = DateTime.now().setZone("America/Chicago");
+    // Luxon: Monday=1 .. Sunday=7
+    const day = nowCT.weekday;
+    const daysUntilNextMonday = (8 - day) % 7 || 7; // if Monday, schedule next week
+    const nextCT = nowCT.plus({ days: daysUntilNextMonday }).startOf("day").plus({ minutes: 5 });
+
+    const ms = nextCT.toMillis() - DateTime.now().toMillis();
+    if (ms > 0 && ms < 2_678_400_000) { // < ~31 days
+      setTimeout(() => location.reload(), ms);
+    }
+  })();
+  </script>
 </body>
 </html>
