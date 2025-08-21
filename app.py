@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 DEBUG_FAKE_STYLIZE = os.getenv("DEBUG_FAKE_STYLIZE", "false").lower() in {"1","true","yes"}
+USE_DEBUG_FAKE = False
 CHICAGO_TZ = ZoneInfo("America/Chicago")
 
 def monday_of(d: date) -> date:
@@ -192,7 +193,7 @@ def index():
     return render_template("index.html", 
                            username=user, 
                            credits=stats.credits if stats else 0,
-                           debug_enabled=DEBUG_FAKE_STYLIZE)
+                           debug_enabled=DEBUG_FAKE_STYLIZE or USE_DEBUG_FAKE)
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -232,13 +233,13 @@ def upload():
 def stylize():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
-    
-    use_mock = (DEBUG_FAKE_STYLIZE or USE_DEBUG_FAKE or debug_request)
+
     username = session["user"]
     data = request.get_json(silent=True) or {}
+
     image_urls = data.get("image_urls")
     style = data.get("style")
-    debug_request = bool(data.get("debug"))
+    debug_request = bool(data.get("debug"))  # <-- define this FIRST
 
     if not image_urls or not style:
         return jsonify({"error": "Missing image URLs or style"}), 400
@@ -247,32 +248,27 @@ def stylize():
     if not user_stats:
         return jsonify({"error": "User tracking not found"}), 500
 
-    # Chicago-time daily refresh
+    # (If you keep daily reset for now)
     today_ct = datetime.now(CHICAGO_TZ).date()
     if not user_stats.last_credit_refresh or user_stats.last_credit_refresh < today_ct:
         user_stats.credits = 0
         user_stats.last_credit_refresh = today_ct
         db.session.commit()
 
-    # Decide mode
-    use_mock = DEBUG_FAKE_STYLIZE or debug_request
+    # ✅ One place to decide mock vs real. Include BOTH flags + per-request.
+    use_mock = bool(DEBUG_FAKE_STYLIZE or USE_DEBUG_FAKE or debug_request)
 
     results = []
     count = 0
-
     for url in image_urls:
         try:
-            if use_mock:
-                output_path = _mock_stylize_file(url, style)
-            else:
-                output_path = stylize_image(url, style)  # real Replicate-backed call
+            output_path = _mock_stylize_file(url, style) if use_mock else stylize_image(url, style)
             if output_path:
                 results.append({"input": url, "output_path": output_path})
                 count += 1
         except Exception as e:
             print(f"Stylization error for {url}: {e}")
 
-    # If nothing worked
     if count == 0:
         return jsonify({
             "stylized": [],
@@ -282,19 +278,17 @@ def stylize():
             "credits_before": user_stats.credits,
             "credits_after": user_stats.credits,
             "charge": {"unit_price_cents": 10, "total_cents": 0},
-            "debug": use_mock,
+            "debug": use_mock,  # <-- reflect actual mode
         })
 
-    # Accounting
     if use_mock:
-        # In mock mode: DO NOT consume credits, DO NOT bill, but still log stylizations count if you want
+        # no billing/credits in mock
         track_event(username, "stylizations", count=count)
-        credits_after = int(user_stats.credits or 0)  # unchanged
+        credits_after = int(user_stats.credits or 0)
         free_credits_used = 0
         paid_units = 0
         total_cents = 0
     else:
-        # Real mode: same logic you had
         credits_before = int(user_stats.credits or 0)
         free_credits_used = max(0, min(credits_before, count))
         paid_units = max(0, count - free_credits_used)
@@ -311,22 +305,19 @@ def stylize():
             ))
 
         db.session.commit()
-
         unit_price_cents = 10
         total_cents = paid_units * unit_price_cents
 
     return jsonify({
         "stylized": results,
         "credits_used": count if not use_mock else 0,
-        "free_credits_used": free_credits_used if not use_mock else 0,
-        "paid_units": paid_units if not use_mock else 0,
-        "credits_after": credits_after if not use_mock else (user_stats.credits or 0),
-        "charge": {
-            "unit_price_cents": 10,
-            "total_cents": total_cents
-        },
-        "debug": use_mock,
+        "free_credits_used": 0 if use_mock else free_credits_used,
+        "paid_units": 0 if use_mock else paid_units,
+        "credits_after": (user_stats.credits or 0) if use_mock else credits_after,
+        "charge": {"unit_price_cents": 10, "total_cents": total_cents},
+        "debug": use_mock,  # <-- important
     })
+
 
     
 @app.route("/track-download")
@@ -467,8 +458,6 @@ def send_report():
     except Exception as e:
         print(f"Email send error: {e}")
         return jsonify({"error": "Failed to send email"}), 500
-
-USE_DEBUG_FAKE = False
 
 @app.route("/admin/debug-toggle")
 def toggle_debug():
