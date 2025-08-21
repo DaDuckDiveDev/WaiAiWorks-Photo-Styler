@@ -281,32 +281,33 @@ def stylize():
             "debug": use_mock,  # <-- reflect actual mode
         })
 
-    if use_mock:
-        # no billing/credits in mock
-        track_event(username, "stylizations", count=count)
-        credits_after = int(user_stats.credits or 0)
-        free_credits_used = 0
-        paid_units = 0
-        total_cents = 0
-    else:
-        credits_before = int(user_stats.credits or 0)
-        free_credits_used = max(0, min(credits_before, count))
-        paid_units = max(0, count - free_credits_used)
-        credits_after = credits_before - count
-        track_event(username, "stylizations", count=count)
-        user_stats.credits = credits_after
+    # -- unified billing/credits for BOTH debug and real --
+    UNIT_PRICE_CENTS = 10
 
-        if paid_units > 0:
-            db.session.add(BillingLedger(
-                username=username,
-                event="stylize_overage",
-                units=paid_units,
-                at=datetime.utcnow(),
-            ))
+    # lifetime stat
+    track_event(username, "stylizations", count=count)
 
-        db.session.commit()
-        unit_price_cents = 10
-        total_cents = paid_units * unit_price_cents
+    # your current model = count-down credits (daily reset in your code)
+    credits_before = int(user_stats.credits or 0)
+    free_credits_used = max(0, min(credits_before, count))
+    paid_units = max(0, count - free_credits_used)
+    credits_after = credits_before - count
+
+    user_stats.credits = credits_after
+
+    # write ledger only if the¸˛re’s an overage to bill (same as before)
+    if paid_units > 0:
+        db.session.add(BillingLedger(
+        username=username,
+        event="stylize_overage",
+        units=paid_units,
+        at=datetime.utcnow(),
+    ))
+
+    db.session.commit()
+
+    total_cents = paid_units * UNIT_PRICE_CENTS
+
 
     return jsonify({
         "stylized": results,
