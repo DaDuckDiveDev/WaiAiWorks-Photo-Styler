@@ -20,6 +20,17 @@ DEBUG_FAKE_STYLIZE = os.getenv("DEBUG_FAKE_STYLIZE", "false").lower() in {"1","t
 USE_DEBUG_FAKE = False
 CHICAGO_TZ = ZoneInfo("America/Chicago")
 
+def _to_bool(v):
+    if isinstance(v, bool):
+        return v
+    if v is None:
+        return False
+    return str(v).strip().lower() in {"1","true","yes","on"}
+
+debug_request = _to_bool((data.get("debug")))
+use_mock = bool(DEBUG_FAKE_STYLIZE or USE_DEBUG_FAKE or debug_request)
+
+
 def monday_of(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
@@ -227,7 +238,7 @@ def upload():
         host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost:5000")
         image_url = f"https://{host}/static/uploads/{filename}"
         uploaded_urls.append(image_url)
-
+    
     return jsonify({"image_urls": uploaded_urls})
 
 @app.route("/stylize", methods=["POST"])
@@ -237,7 +248,7 @@ def stylize():
 
     username = session["user"]
     data = request.get_json(silent=True) or {}
-
+    print(f"[stylize] use_mock={use_mock} (env={DEBUG_FAKE_STYLIZE}, toggle={USE_DEBUG_FAKE}, req={debug_request})")
     image_urls = data.get("image_urls")
     style = data.get("style")
     debug_request = bool(data.get("debug"))  # <-- define this FIRST 
