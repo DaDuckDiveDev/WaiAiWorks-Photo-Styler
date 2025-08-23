@@ -53,9 +53,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Business config: turn CSV env var into a set
 ADMIN_VISIBLE_USERS = {
     "admin": "__ALL__", # super admin sees everyone
-    "alekseiadmin": {"aleksei", "maria", "amrita", "alekseiadmin"},
+    "alekseiadmin": {"aleksei", "maria", "amrita", "alekseiadmin","olesya"},
 }
-ALEKSEI_USERS = ["aleksei", "maria", "amrita", "alekseiadmin"]
+ALEKSEI_USERS = ["aleksei", "maria", "amrita", "alekseiadmin","olesya"]
 # Who is allowed to open /admin/stats
 ADMINS = set(ADMIN_VISIBLE_USERS.keys())
 
@@ -84,6 +84,7 @@ USERS = {
     "maria": "maria1",
     "amrita": "amrita1",
     "aleksei": "aleksei1",
+    "olesya": "olesya1",
 }
 
 
@@ -213,7 +214,7 @@ def upload():
     for file in files:
         if file.filename == "":
             continue
-
+        
         filename = secure_filename(file.filename)
         upload_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(upload_path)
@@ -239,7 +240,7 @@ def stylize():
 
     image_urls = data.get("image_urls")
     style = data.get("style")
-    debug_request = bool(data.get("debug"))  # <-- define this FIRST
+    debug_request = bool(data.get("debug"))  # <-- define this FIRST 
 
     if not image_urls or not style:
         return jsonify({"error": "Missing image URLs or style"}), 400
@@ -318,8 +319,6 @@ def stylize():
         "charge": {"unit_price_cents": 10, "total_cents": total_cents},
         "debug": use_mock,  # <-- important
     })
-
-
     
 @app.route("/track-download")
 def track_download():
