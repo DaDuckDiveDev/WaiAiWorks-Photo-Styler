@@ -84,10 +84,7 @@ USERS = {
     "admin": "PhotoM1n",
     "hardrock": "photoHR",
     "lulus": "photoLU",
-    "kuhio": "photoKU",
-    "luckystrike": "photoLS",
-    "dave": "photoDB",
-    "dksteak": "photoDK",
+    "dave": "photoDB",  
     "geometry": "Geotest1",
     "alexpix": "Pix2025",
     "vicentaadmin": "welcome1",
@@ -96,6 +93,7 @@ USERS = {
     "amrita": "amrita1",
     "aleksei": "aleksei1",
     "olesya": "olesya1",
+    "bekzat": "yasmin",
 }
 
 
@@ -121,7 +119,6 @@ class BillingLedger(db.Model):
     event = db.Column(db.String(32), nullable=False)          # e.g., 'stylize_overage'
     units = db.Column(db.Integer, nullable=False, default=0)  # how many overage stylizations
     at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-
 
 # Create tables
 with app.app_context():
