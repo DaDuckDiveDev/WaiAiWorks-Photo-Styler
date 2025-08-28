@@ -6,36 +6,56 @@
   <title>AI Photo Stylizer</title>
   <style>
     :root {
-      --sunset-darkpurple: #4b2354;
-      --sunset-purple: #873e75;
-      --sunset-coralorange: #ff6b3d;
-      --sunset-orangeglow: #ff7a5c;
-      --sunset-peach: #f7b267;
-      --sunset-gold: #fbd786;
-      --sunset-yellow: #ffeaa7;
-      --sunset-sky: #a0d8ef;
-      --sunset-blue: #7fc9f8;
-      --ocean-deep: #1e3c72;
+      /* Palette tuned to your Figma */
+      --lavender: #B98DFF;
+      /* soft purple glow */
+      --indigo: #6E64FF;
+      /* deeper purple core */
+      --peach: #FFB38A;
+      /* warm peach mid */
+      --coral: #FF7A86;
+      /* pink/coral bottom-right */
+      --blush: #FFD0D8;
+      /* light pink wash */
+      --gold: #E5C79A;
+      /* muted warm gold bottom-left */
+      --base-wash: #FDD1C2;
+      /* overall warm base */
+      --vignette: rgba(0, 0, 0, 0.04);
+      --white-glow: rgba(255, 255, 255, 0.75);
     }
 
     body {
-      height: 100vh;
       margin: 0;
-      background: linear-gradient(to bottom,
-          var(--sunset-darkpurple) 0%,
-          var(--sunset-purple) 8%,
-          var(--sunset-coralorange) 16%,
-          var(--sunset-orangeglow) 28%,
-          var(--sunset-peach) 40%,
-          var(--sunset-gold) 52%,
-          var(--sunset-yellow) 64%,
-          var(--sunset-sky) 76%,
-          var(--sunset-blue) 88%,
-          var(--ocean-deep) 100%);
+      height: 100vh;
+      font-family: Arial, sans-serif;
+
+      /* Base warm wash + layered blobs to match Figma */
+      background:
+        /* subtle vignette */
+        radial-gradient(120% 120% at 50% 50%, var(--vignette) 0%, transparent 70%),
+
+        /* white highlight top-right */
+        radial-gradient(60% 60% at 92% 8%, var(--white-glow) 0%, transparent 40%),
+
+        /* coral blob bottom-right */
+        radial-gradient(80% 80% at 88% 80%, var(--coral) 0%, transparent 60%),
+
+        /* peach/orange mid-right */
+        radial-gradient(85% 85% at 68% 42%, var(--peach) 0%, transparent 55%),
+
+        /* warm gold bottom-left */
+        radial-gradient(80% 80% at 12% 78%, rgba(229, 199, 154, 0.55) 0%, transparent 55%),
+
+        /* lavender/indigo top-left */
+        radial-gradient(85% 85% at 18% 18%, var(--indigo) 0%, var(--lavender) 35%, transparent 65%),
+
+        /* soft overall pink wash */
+        linear-gradient(120deg, var(--base-wash) 0%, var(--blush) 100%);
+
       background-repeat: no-repeat;
       background-size: cover;
       background-attachment: fixed;
-      font-family: Arial, sans-serif;
       padding: 40px;
     }
 
@@ -192,6 +212,13 @@
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
       transition: transform 0.08s ease, box-shadow 0.2s ease, background-color 0.15s ease;
     }
+
+    .download-all-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
 
     .download-all-btn:hover {
       background-color: rgba(44, 144, 185, 0.95);
@@ -362,9 +389,11 @@
     <div class="results-section">
       <h3>Results</h3>
       <div id="outputGallery"></div>
-      <button id="downloadAllBtn" class="download-all-btn hidden" type="button">
-        ⬇️ Download All
-      </button>
+      <div class="download-all-container">
+        <button id="downloadAllBtn" class="download-all-btn hidden" type="button">
+          ⬇️ Download All
+        </button>
+      </div>
     </div>
   </div>
 
