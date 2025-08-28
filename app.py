@@ -94,6 +94,7 @@ USERS = {
     "aleksei": "aleksei1",
     "olesya": "olesya1",
     "bekzat": "yasmin",
+    "geometryadmin":"geometryadmingeometryadmin!", 
 }
 
 
