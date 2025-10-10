@@ -82,19 +82,19 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 # Hardcoded users
 USERS = {
     "admin": "PhotoM1n",
-    "hardrock": "photoHR",
-    "lulus": "photoLU",
-    "dave": "photoDB",  
-    "geometry": "Geotest1",
-    "alexpix": "Pix2025",
-    "vicentaadmin": "welcome1",
-    "alekseiadmin": "alekseiadminalekseiadmin!",
+    # "hardrock": "photoHR",
+    # "lulus": "photoLU",
+    # "dave": "photoDB",  
+    # "geometry": "Geotest1",
+    # "alexpix": "Pix2025",
+    # "vicentaadmin": "welcome1",
+    # "alekseiadmin": "alekseiadminalekseiadmin!",
     "maria": "maria1",
     "amrita": "amrita1",
     "aleksei": "aleksei1",
     "olesya": "olesya1",
     "bekzat": "yasmin",
-    "geometryadmin":"geometryadmingeometryadmin!", 
+    # "geometryadmin":"geometryadmingeometryadmin!", 
 }
 
 
