@@ -64,9 +64,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Business config: turn CSV env var into a set
 ADMIN_VISIBLE_USERS = {
     "admin": "__ALL__", # super admin sees everyone
-    "alekseiadmin": {"aleksei", "maria", "amrita", "alekseiadmin","olesya"},
+    "alekseiadmin": {"aleksei", "maria", "amrita", "alekseiadmin","olesya","anastasiya"},
 }
-ALEKSEI_USERS = ["aleksei", "maria", "amrita", "alekseiadmin","olesya"]
+ALEKSEI_USERS = ["aleksei", "maria", "amrita", "alekseiadmin","olesya","anastasiya"]
 # Who is allowed to open /admin/stats
 ADMINS = set(ADMIN_VISIBLE_USERS.keys())
 
@@ -82,19 +82,13 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 # Hardcoded users
 USERS = {
     "admin": "PhotoM1n",
-    # "hardrock": "photoHR",
-    # "lulus": "photoLU",
-    # "dave": "photoDB",  
-    # "geometry": "Geotest1",
-    # "alexpix": "Pix2025",
-    # "vicentaadmin": "welcome1",
-    # "alekseiadmin": "alekseiadminalekseiadmin!",
+    "alekseiadmin": "alekseiadminalekseiadmin!",
     "maria": "maria1",
     "amrita": "amrita1",
     "aleksei": "aleksei1",
     "olesya": "olesya1",
     "bekzat": "yasmin",
-    # "geometryadmin":"geometryadmingeometryadmin!", 
+    "anastasiya": "anastasiya1", 
 }
 
 
