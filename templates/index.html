@@ -4,53 +4,42 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Photo Stylizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Palette tuned to your Figma */
       --lavender: #B98DFF;
-      /* soft purple glow */
       --indigo: #6E64FF;
-      /* deeper purple core */
       --peach: #FFB38A;
-      /* warm peach mid */
       --coral: #FF7A86;
-      /* pink/coral bottom-right */
       --blush: #FFD0D8;
-      /* light pink wash */
       --gold: #E5C79A;
-      /* muted warm gold bottom-left */
       --base-wash: #FDD1C2;
-      /* overall warm base */
       --vignette: rgba(0, 0, 0, 0.04);
       --white-glow: rgba(255, 255, 255, 0.75);
+
+      /* Button theme — warm-to-cool gradient mirroring the bg */
+      --btn-grad: linear-gradient(135deg, var(--indigo) 0%, var(--lavender) 50%, var(--coral) 100%);
+      --btn-grad-hover: linear-gradient(135deg, #5a51f5 0%, #c9a8ff 50%, #ff6070 100%);
+      --btn-upload-grad: linear-gradient(135deg, var(--peach) 0%, var(--coral) 100%);
+      --btn-upload-hover: linear-gradient(135deg, #ffa070 0%, #f05060 100%);
+      --btn-dl-grad: linear-gradient(135deg, var(--gold) 0%, var(--peach) 100%);
     }
+
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      height: 100vh;
-      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
 
-      /* Base warm wash + layered blobs to match Figma */
       background:
-        /* subtle vignette */
         radial-gradient(120% 120% at 50% 50%, var(--vignette) 0%, transparent 70%),
-
-        /* white highlight top-right */
         radial-gradient(60% 60% at 92% 8%, var(--white-glow) 0%, transparent 40%),
-
-        /* coral blob bottom-right */
         radial-gradient(80% 80% at 88% 80%, var(--coral) 0%, transparent 60%),
-
-        /* peach/orange mid-right */
         radial-gradient(85% 85% at 68% 42%, var(--peach) 0%, transparent 55%),
-
-        /* warm gold bottom-left */
         radial-gradient(80% 80% at 12% 78%, rgba(229, 199, 154, 0.55) 0%, transparent 55%),
-
-        /* lavender/indigo top-left */
         radial-gradient(85% 85% at 18% 18%, var(--indigo) 0%, var(--lavender) 35%, transparent 65%),
-
-        /* soft overall pink wash */
         linear-gradient(120deg, var(--base-wash) 0%, var(--blush) 100%);
 
       background-repeat: no-repeat;
@@ -59,78 +48,130 @@
       padding: 40px;
     }
 
+    /* ─── Typography ─── */
     h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
       text-align: center;
-      color: var(--sunset-darkpurple);
+      color: white;
+      text-shadow: 0 2px 18px rgba(110, 100, 255, 0.35);
+      margin: 0 0 4px;
+      letter-spacing: 0.01em;
     }
 
+    h3 {
+      font-family: 'Playfair Display', serif;
+      color: white;
+      text-align: center;
+      font-size: 1.2rem;
+      margin: 8px 0 12px;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.12);
+    }
+
+    p, label, li {
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ─── Header ─── */
+    .header-username {
+      font-family: 'Playfair Display', serif;
+      color: white;
+      font-size: 1.3rem;
+      line-height: 1.5;
+      text-shadow: 0 1px 10px rgba(110,100,255,0.3);
+    }
+
+    /* ─── Upload Status ─── */
     #uploadStatus {
-      margin-top: 20px;
-      font-weight: bold;
+      margin-top: 14px;
+      font-weight: 500;
       text-align: center;
+      color: white;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.1);
+      min-height: 22px;
     }
 
-    #uploadPreview img {
-      max-width: 300px;
-      height: auto;
-      margin: 5px;
-      border: 2px solid white;
-    }
-
+    /* ─── Preview ─── */
     #uploadPreview img {
       width: 300px;
       height: auto;
       margin: 5px;
-      border: 2px solid white;
+      border: 2px solid rgba(255,255,255,0.8);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(110,100,255,0.2);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
 
     #uploadPreview img:hover {
-      transform: scale(1.8);
-      transition: transform 0.2s ease;
+      transform: scale(1.08);
+      box-shadow: 0 8px 32px rgba(110,100,255,0.35);
       z-index: 2;
     }
 
+    /* ─── Style Buttons Row ─── */
     #styleButtons {
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 14px;
       flex-wrap: wrap;
+    }
+
+    /* ─── Gallery ─── */
+    #outputGallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
     }
 
     #outputGallery img {
       width: 300px;
       height: auto;
       margin: 5px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.8);
+      box-shadow: 0 4px 20px rgba(255,122,134,0.2);
       display: block;
-    }
-
-    #outputGallery {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 5px;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
 
     #outputGallery img:hover {
-      transform: scale(1.8);
-      transition: transform 0.2s ease;
+      transform: scale(1.08);
+      box-shadow: 0 8px 32px rgba(255,122,134,0.35);
       z-index: 2;
     }
 
     .output-item {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+    }
+
+    .output-item a {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: white;
+      text-decoration: none;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 20px;
+      padding: 4px 14px;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+    .output-item a:hover {
+      background: rgba(255,255,255,0.32);
     }
 
     .main {
       display: flex;
       flex-direction: column;
-      /* stack children top→bottom */
       align-items: center;
-      /* center everything horizontally */
       gap: 20px;
-      /* spacing between preview & results */
       margin-top: 20px;
     }
 
@@ -138,313 +179,374 @@
     .results-section {
       flex: 1;
       padding: 0 10px;
+      width: 100%;
+      max-width: 900px;
     }
 
-    input[type="file"] {
-      display: none;
-    }
+    /* ─── UPLOAD BUTTON ─── */
+    input[type="file"] { display: none; }
 
     .custom-file-label {
-      font-weight: bold;
-      display: inline-block;
-      padding: 12px 26px;
-      font-size: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
       color: white;
-      background-color: rgba(64, 174, 215, 0.8);
-      border: 2px solid white;
-      border-radius: 6px;
+      background: var(--btn-upload-grad);
+      border: 2px solid rgba(255,255,255,0.7);
+      border-radius: 50px;
       cursor: pointer;
       text-align: center;
+      box-shadow: 0 4px 18px rgba(255,122,134,0.35);
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
     }
 
     .custom-file-label:hover {
-      background-color: rgba(44, 144, 185, 0.9);
+      background: var(--btn-upload-hover);
+      box-shadow: 0 6px 24px rgba(255,90,100,0.45);
+      transform: translateY(-1px);
     }
 
+    /* ─── STYLE BUTTONS ─── */
     .stylizeBtn {
-      font-weight: bold;
-      display: inline-block;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
       margin: 0;
-      padding: 12px 26px;
-      font-size: 16px;
+      padding: 12px 22px;
       color: white;
-      background-color: rgba(64, 174, 215, 0.85);
-      border: 2px solid white;
-      border-radius: 6px;
+      background: var(--btn-grad);
+      border: 2px solid rgba(255,255,255,0.6);
+      border-radius: 50px;
       cursor: pointer;
+      box-shadow: 0 4px 16px rgba(110,100,255,0.3);
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s, outline 0.15s;
     }
 
     .stylizeBtn.active {
-      outline: 2px solid white;
-      background-color: rgba(64, 174, 215, 0.95);
+      outline: 3px solid rgba(255,255,255,0.9);
+      outline-offset: 2px;
+      box-shadow: 0 6px 24px rgba(110,100,255,0.5);
+      transform: translateY(-1px);
     }
 
-    .stylizeBtn:hover {
-      background-color: rgba(44, 144, 185, 0.9);
+    .stylizeBtn:hover:not(:disabled) {
+      background: var(--btn-grad-hover);
+      box-shadow: 0 8px 28px rgba(110,100,255,0.4);
+      transform: translateY(-2px);
     }
 
+    .stylizeBtn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─── LOADER ─── */
     .loader {
-      border: 6px solid rgba(255, 255, 255, 0.3);
-      border-top: 6px solid white;
+      border: 5px solid rgba(255, 255, 255, 0.25);
+      border-top: 5px solid white;
       border-radius: 50%;
       width: 36px;
       height: 36px;
-      animation: spin 1s linear infinite;
+      animation: spin 0.8s linear infinite;
       margin: auto;
     }
 
-    /* Reusable hidden utility */
-    .hidden {
-      display: none !important;
-    }
+    .hidden { display: none !important; }
 
-    /* Download All button */
+    /* ─── DOWNLOAD ALL ─── */
     .download-all-btn {
-      font-weight: bold;
-      padding: 12px 26px;
-      font-size: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 13px 30px;
       color: white;
-      background-color: rgba(64, 174, 215, 0.85);
-      border: 2px solid white;
-      border-radius: 10px;
+      background: var(--btn-dl-grad);
+      border: 2px solid rgba(255,255,255,0.7);
+      border-radius: 50px;
       cursor: pointer;
       margin-top: 20px;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
-      transition: transform 0.08s ease, box-shadow 0.2s ease, background-color 0.15s ease;
+      box-shadow: 0 5px 18px rgba(229,199,154,0.45);
+      transition: transform 0.1s ease, box-shadow 0.2s ease, opacity 0.15s;
     }
 
     .download-all-container {
       display: flex;
       justify-content: center;
-      margin-top: 20px;
+      margin-top: 10px;
     }
-
 
     .download-all-btn:hover {
-      background-color: rgba(44, 144, 185, 0.95);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+      box-shadow: 0 8px 26px rgba(229,180,100,0.55);
+      transform: translateY(-2px);
     }
 
-    .download-all-btn:active {
-      transform: translateY(1px);
-    }
+    .download-all-btn:active { transform: translateY(0); }
 
     .download-all-btn:disabled {
-      opacity: 0.6;
+      opacity: 0.55;
       cursor: not-allowed;
-      filter: grayscale(10%);
+      transform: none;
     }
 
     @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
-    /* Support buttons */
+    /* ─── SUPPORT BUTTONS ─── */
     #supportButtons {
       position: fixed;
       bottom: 20px;
       right: 20px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       z-index: 100;
     }
 
     .support-btn {
-      background-color: rgba(64, 174, 215, 0.85);
-      border: 2px solid white;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.22);
+      border: 1.5px solid rgba(255,255,255,0.65);
       color: white;
-      font-weight: bold;
-      font-size: 14px;
-      padding: 10px 16px;
-      border-radius: 6px;
+      padding: 10px 18px;
+      border-radius: 50px;
       cursor: pointer;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 2px 12px rgba(110,100,255,0.15);
+      transition: background 0.2s, box-shadow 0.2s;
     }
 
     .support-btn:hover {
-      background-color: rgba(44, 144, 185, 0.95);
+      background: rgba(255,255,255,0.35);
+      box-shadow: 0 4px 18px rgba(110,100,255,0.25);
     }
 
-    /* Modal */
+    /* ─── MODAL ─── */
     .modal {
       display: none;
       position: fixed;
       z-index: 200;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(80,60,140,0.45);
+      backdrop-filter: blur(4px);
       overflow-y: auto;
     }
 
     .modal-content {
-      background-color: rgba(44, 144, 185, 0.95);
+      background: linear-gradient(145deg, rgba(110,100,255,0.88), rgba(185,141,255,0.85));
       margin: 5% auto;
-      padding: 20px;
+      padding: 28px 32px;
       width: 90%;
-      height: auto;
       max-width: 600px;
-      border-radius: 10px;
-      border: 5px solid white;
-      font-weight: bold;
+      border-radius: 18px;
+      border: 2px solid rgba(255,255,255,0.55);
       font-size: 14px;
       color: white;
+      box-shadow: 0 16px 48px rgba(80,60,200,0.3);
+    }
 
+    .modal-content h2 {
+      font-family: 'Playfair Display', serif;
+      margin-top: 20px;
+      margin-bottom: 8px;
     }
 
     .close-btn {
-      color: #aaa;
+      color: rgba(255,255,255,0.65);
       float: right;
       font-size: 24px;
       font-weight: bold;
       cursor: pointer;
+      line-height: 1;
     }
 
-    .close-btn:hover {
-      color: black;
-    }
+    .close-btn:hover { color: white; }
 
     #supportForm input,
     #supportForm textarea {
       width: 100%;
       padding: 10px;
       margin-top: 4px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.5);
+      border-radius: 8px;
       font-size: 14px;
+      background: rgba(255,255,255,0.18);
+      color: white;
+      font-family: 'DM Sans', sans-serif;
     }
+
+    #supportForm input::placeholder,
+    #supportForm textarea::placeholder { color: rgba(255,255,255,0.5); }
 
     #supportForm button {
-      margin-top: 12px;
-      padding: 10px 16px;
-      background-color: rgba(64, 174, 215, 0.85);
-      border: none;
+      margin-top: 14px;
+      padding: 11px 22px;
+      background: var(--btn-upload-grad);
+      border: 1.5px solid rgba(255,255,255,0.6);
       color: white;
-      font-weight: bold;
-      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-radius: 50px;
       cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 0.2s;
     }
 
-    #supportForm button:hover {
-      background-color: rgba(44, 144, 185, 0.95);
+    #supportForm button:hover { background: var(--btn-upload-hover); }
+
+    /* Credits badge */
+    #creditsDisplay {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 0.95rem;
+      color: white;
+      background: rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(255,255,255,0.55);
+      border-radius: 50px;
+      padding: 8px 18px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Subtitle tagline */
+    .tagline {
+      text-align: center;
+      color: rgba(255,255,255,0.75);
+      font-size: 0.9rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      margin: 0 0 10px;
     }
   </style>
 </head>
 
 <body>
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 16px;">
       <img src="{{ url_for('static', filename='WaiaiLogoHori.png') }}" alt="Logo"
         style="height:80px; border-radius:8px;">
-      <div style="color:white; font-weight:bold; font-size:28px;">
-        Welcome,<br>{{ username }}
+      <div class="header-username">
+        Welcome back,<br>{{ username }}
       </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <div id="creditsDisplay" style="color:white; font-weight:bold; font-size:20px;">
-        Credits Used: {{ credits }}
-      </div>
-      <button id="instructionsBtn" class="support-btn">📖 Instructions</button>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <div id="creditsDisplay">✨ {{ credits }} Credits Remaining</div>
+      <button id="instructionsBtn" class="support-btn">📖 How It Works</button>
     </div>
   </div>
 
-  <h1>Upload Photo to Stylize</h1>
+  <h1>Transform Your Photos</h1>
+  <p class="tagline">Upload a portrait and choose your artistic style — the AI does the rest</p>
 
   <div class="main">
-    <!-- 1) Upload & Style -->
+    <!-- Upload & Style -->
     <div class="upload-section">
       <div style="text-align:center;">
-        <label for="imageInput" class="custom-file-label">⬆️ Choose Images</label>
+        <label for="imageInput" class="custom-file-label">⬆️ Choose Photos</label>
         <input type="file" id="imageInput" name="image" accept="image/*" multiple>
       </div>
 
-      <!-- style buttons will now line up in a row -->
       <div id="styleButtons">
-        <button class="stylizeBtn" data-style="anime">🎨 Anime</button>
-        <button class="stylizeBtn" data-style="pixar">🧸 Pixar</button>
-        <button class="stylizeBtn" data-style="comic">🦸 Comic</button>
-        <button class="stylizeBtn" data-style="disney">👓 Disney</button>
+        <button class="stylizeBtn" data-style="anime">🌸 Anime Dream</button>
+        <button class="stylizeBtn" data-style="pixar">🧸 Pixar Magic</button>
+        <button class="stylizeBtn" data-style="comic">⚡ Comic Hero</button>
+        <button class="stylizeBtn" data-style="disney">✨ Disney Glow</button>
         {% if debug_enabled %}
-        <button id="debugBtn">🧪 Debug (no API)</button>
+        <button id="debugBtn" class="stylizeBtn">🧪 Debug Mode</button>
         {% endif %}
       </div>
 
       <p id="uploadStatus"></p>
-      <div id="spinner" style="display:none; text-align:center; margin-top:10px;">
+      <div id="spinner" style="display:none; text-align:center; margin-top:14px;">
         <div class="loader"></div>
+        <p style="color:white; font-size:0.85rem; margin-top:10px; opacity:0.8;">Crafting your masterpiece…</p>
       </div>
     </div>
 
-    <!-- 2) Preview -->
+    <!-- Preview -->
     <div id="uploadPreview"></div>
 
-    <!-- 3) Results Gallery -->
+    <!-- Results -->
     <div class="results-section">
-      <h3>Results</h3>
+      <h3>Your Creations</h3>
       <div id="outputGallery"></div>
       <div class="download-all-container">
         <button id="downloadAllBtn" class="download-all-btn hidden" type="button">
-          ⬇️ Download All
+          ⬇️ Save All Creations
         </button>
       </div>
     </div>
   </div>
 
 
-  <!-- Support Buttons & Modal -->
+  <!-- Support Buttons -->
   <div id="supportButtons">
-    <button onclick="openModal('report')" class="support-btn">🛠️ Report Issue</button>
-    <button onclick="openModal('support')" class="support-btn">💬 Support</button>
+    <button onclick="openModal('report')" class="support-btn">🛠️ Report a Glitch</button>
+    <button onclick="openModal('support')" class="support-btn">💬 Get Help</button>
   </div>
+
+  <!-- Support/Report Modal -->
   <div id="supportModal" class="modal">
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal()">&times;</span>
-      <h2 id="modalTitle">Support</h2>
+      <h2 id="modalTitle">Get Help</h2>
       <form id="supportForm">
-        <label>Username:</label>
+        <label>Your Username</label>
         <input type="text" name="username" value="{{ username }}" readonly><br><br>
-        <label>Message:</label>
-        <textarea name="message" rows="5" required></textarea>
-        <button type="submit">Submit</button>
+        <label>Your Message</label>
+        <textarea name="message" rows="5" placeholder="Tell us what's on your mind…" required></textarea>
+        <button type="submit">Send Message</button>
       </form>
     </div>
   </div>
 
+  <!-- Instructions Modal -->
   <div id="instructionsModal" class="modal">
     <div class="modal-content">
       <span class="close-btn" onclick="closeInstructions()">&times;</span>
-      <h2>How to Use</h2>
+      <h2>How It Works</h2>
       <ul>
-        <li>Select 1–5 images with the “⬆️ Choose Images” button.</li>
-        <li>Click one of the style buttons (Anime, Pixar, Comic, Disney).</li>
-        <li>Wait for the AI to render—your “before” thumbnails stay above.</li>
-        <li>Your “after” stylized images appear below with download links.</li>
-        <li>You get X credits per day; each stylization uses one credit.</li>
+        <li>Pick 1–5 photos with the <strong>Choose Photos</strong> button.</li>
+        <li>Select a style — Anime Dream, Pixar Magic, Comic Hero, or Disney Glow.</li>
+        <li>Sit back while the AI transforms your photos. Your originals stay above for comparison.</li>
+        <li>Download your creations individually or all at once.</li>
+        <li>Each stylization uses one credit. Credits refresh daily.</li>
       </ul>
-      <h2>RULES</h2>
+      <h2>For Best Results</h2>
       <ul>
-        <li>Avoid groups with 6+ people unless its very detailed and up close where frame is filled (risk of fail
-          render)</li>
-        <li>Make sure photos are crisp and not blurry</li>
-        <li>Vertical Photo: Make sure its vertical (edit tilt 90 degrees or enable auto tilt feature on your camera
-          settings)</li>
-        <li>Ensure everyone is looking at camera, side profile/closed eyes increases change of bad render</li>
+        <li>Avoid large groups of 6+ people (higher chance of imperfect render).</li>
+        <li>Use sharp, well-lit photos — avoid blurry or dark shots.</li>
+        <li>Portrait orientation works best; rotate tilted photos before uploading.</li>
+        <li>Everyone facing the camera gives the cleanest result.</li>
       </ul>
-      <h2>Tips</h2>
+      <h2>Tips & Tricks</h2>
       <ul>
-        <li>Hold 'ctrl' to select multiple images at once or zoom in photo selctor</li>
-        <li>In rare cases program might generate an extra person-> Use different theme or crop photo</li>
-        <li>6% error/failed render</li>
-        <li>2D Animation/Anime sells best followed by 3D and Comic is very niche.</li>
-        <li>Learn how the AI works: what photos does it like? which style handles best lighting/poses? Find your style
-          and Enjoy!</li>
+        <li>Hold <strong>Ctrl</strong> to select multiple images at once in the file picker.</li>
+        <li>In rare cases the AI may add an extra person — try a different style or crop the photo.</li>
+        <li>Overall render error rate is around 6%.</li>
+        <li>Anime Dream tends to sell best; Comic Hero is great for dramatic shots.</li>
+        <li>Experiment! Each style handles lighting and poses differently — find your favourite.</li>
       </ul>
     </div>
   </div>
@@ -452,22 +554,20 @@
   <script>
     let uploadedImageUrls = [];
 
-    // 1) Upload & Preview Handler
     document.getElementById("imageInput").addEventListener("change", function () {
       const files = this.files;
       if (!files.length) return;
       if (files.length > 5) {
-        alert("Please select up to 5 images only.");
+        alert("Please select up to 5 photos only.");
         this.value = "";
         return;
       }
 
-      // Reset UI
       uploadedImageUrls = [];
       document.getElementById("uploadPreview").innerHTML = "";
       document.getElementById("outputGallery").innerHTML = "";
       document.getElementById("downloadAllBtn").classList.add("hidden");
-      document.getElementById("uploadStatus").textContent = "Uploading...";
+      document.getElementById("uploadStatus").textContent = "Uploading your photos…";
       document.getElementById("spinner").style.display = "block";
       document.querySelectorAll(".stylizeBtn").forEach(btn => {
         btn.classList.remove("active");
@@ -475,11 +575,9 @@
         btn.style.display = "none";
       });
 
-      // Build FormData
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append("image", f));
 
-      // POST /upload
       fetch("/upload", { method: "POST", body: formData })
         .then(r => r.json())
         .then(res => {
@@ -489,30 +587,29 @@
 
           if (res.image_urls?.length) {
             uploadedImageUrls = res.image_urls;
-            document.getElementById("uploadStatus").textContent = "Upload successful!";
-            document.querySelectorAll(".stylizeBtn").forEach(btn => btn.style.display = "block");
+            document.getElementById("uploadStatus").textContent = "Photos ready — choose your style below";
+            document.querySelectorAll(".stylizeBtn").forEach(btn => btn.style.display = "inline-flex");
 
-            // Show thumbnails at 250px width
             res.image_urls.forEach(url => {
               const img = document.createElement("img");
               img.src = url;
               img.style.width = "250px";
               img.style.height = "auto";
               img.style.margin = "5px";
-              img.style.border = "2px solid white";
+              img.style.border = "2px solid rgba(255,255,255,0.8)";
+              img.style.borderRadius = "10px";
               preview.appendChild(img);
             });
           } else {
-            document.getElementById("uploadStatus").textContent = "Upload failed.";
+            document.getElementById("uploadStatus").textContent = "Upload failed — please try again.";
           }
         })
         .catch(err => {
           document.getElementById("spinner").style.display = "none";
-          document.getElementById("uploadStatus").textContent = "Upload error.";
+          document.getElementById("uploadStatus").textContent = "Something went wrong during upload.";
           console.error(err);
         });
 
-      // Hook up Stylize buttons
       document.querySelectorAll(".stylizeBtn").forEach(btn => {
         btn.onclick = async () => {
           document.querySelectorAll(".stylizeBtn").forEach(b => b.classList.remove("active"));
@@ -524,11 +621,12 @@
 
           if (!uploadedImageUrls.length) return;
           document.getElementById("uploadStatus").textContent = isDebug
-            ? `Stylizing in DEBUG (no API/billing) — ${style}...`
-            : `Stylizing (${style})...`;
+            ? `Running in debug mode (${style}) — no credits used…`
+            : `Weaving your ${btn.textContent.trim()} transformation…`;
 
           const gallery = document.getElementById("outputGallery");
           gallery.innerHTML = "";
+          document.getElementById("spinner").style.display = "block";
 
           try {
             const resp = await fetch("/stylize", {
@@ -538,6 +636,8 @@
             });
             const { stylized, credits_after, debug } = await resp.json();
 
+            document.getElementById("spinner").style.display = "none";
+
             stylized.forEach((it, i) => {
               const d = document.createElement("div");
               d.className = "output-item";
@@ -546,48 +646,42 @@
               const a = document.createElement("a");
               a.href = `/track-download?path=${it.output_path}`;
               a.download = `stylized-${style}-${i + 1}.jpg`;
-              a.innerText = "Download";
+              a.innerText = "⬇ Save Image";
               d.append(img, a);
               gallery.append(d);
             });
 
             if (!debug) {
-              document.getElementById("creditsDisplay").textContent = `Credits: ${credits_after}`;
-            } else {
-              document.getElementById("creditsDisplay").textContent = `Credits: ${document.getElementById("creditsDisplay").textContent.split(': ')[1] || '{{ credits }}'} (unchanged in DEBUG)`;
+              document.getElementById("creditsDisplay").textContent = `✨ ${credits_after} Credits Remaining`;
             }
 
-            document.getElementById("uploadStatus").textContent = debug ? "All done (DEBUG)!" : "All done!";
+            document.getElementById("uploadStatus").textContent = debug
+              ? "Done! (debug mode — credits unchanged)"
+              : "Your creations are ready ✨";
             document.getElementById("downloadAllBtn").classList.remove("hidden");
           } catch (e) {
             console.error(e);
-            document.getElementById("uploadStatus").textContent = "Stylization failed.";
+            document.getElementById("spinner").style.display = "none";
+            document.getElementById("uploadStatus").textContent = "Something went wrong — please try again.";
           } finally {
             document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = false);
           }
         };
       });
 
-      // Download All
       const downloadAllBtn = document.getElementById("downloadAllBtn");
-      downloadAllBtn.addEventListener("click", (e) => {
+      downloadAllBtn.addEventListener("click", () => {
         const links = Array.from(document.querySelectorAll("#outputGallery a"));
         if (!links.length) return;
-
-        downloadAllBtn.disabled = true;           // 🔒 disable
+        downloadAllBtn.disabled = true;
         links.forEach((l, i) => setTimeout(() => l.click(), i * 600));
-
-        // Re-enable after the last scheduled click finishes
-        const totalDelay = (links.length - 1) * 600 + 700;
-        setTimeout(() => { downloadAllBtn.disabled = false; }, totalDelay);
+        setTimeout(() => { downloadAllBtn.disabled = false; }, (links.length - 1) * 600 + 700);
       });
+    });
 
-    }); // ←←← closes the 'change' event listener
-
-    // 2) Modal & Support logic (global)
     function openModal(type) {
       document.getElementById("modalTitle").textContent =
-        type === "report" ? "Report Issue" : "Support";
+        type === "report" ? "Report a Glitch" : "Get Help";
       document.getElementById("supportModal").style.display = "block";
     }
     function closeModal() {
@@ -596,10 +690,8 @@
     }
     document.getElementById("supportForm").addEventListener("submit", async e => {
       e.preventDefault();
-      const u = e.target.username.value;
       const m = e.target.message.value;
-      const t = document.getElementById("modalTitle").innerText.includes("Report")
-        ? "Report" : "Support";
+      const t = document.getElementById("modalTitle").innerText.includes("Glitch") ? "Report" : "Support";
       try {
         const r = await fetch("/send-report", {
           method: "POST",
@@ -607,34 +699,26 @@
           body: JSON.stringify({ message: m, topic: t })
         });
         const j = await r.json();
-        alert(j.success ? "✅ Sent!" : "❌ Failed.");
+        alert(j.success ? "✅ Message sent!" : "❌ Failed to send.");
         if (j.success) closeModal();
       } catch {
-        alert("❌ Error sending.");
+        alert("❌ Error sending message.");
       }
     });
     window.addEventListener("click", e => {
       if (e.target.id === "supportModal") closeModal();
     });
 
-    // Show instructions
     document.getElementById("instructionsBtn").addEventListener("click", () => {
       document.getElementById("instructionsModal").style.display = "block";
     });
-
     function closeInstructions() {
       document.getElementById("instructionsModal").style.display = "none";
     }
-
-    // Close instructions if user clicks outside
     window.addEventListener("click", e => {
-      if (e.target.id === "instructionsModal") {
-        closeInstructions();
-      }
+      if (e.target.id === "instructionsModal") closeInstructions();
     });
   </script>
 
-
 </body>
-
 </html>

@@ -88,7 +88,9 @@ USERS = {
     "aleksei": "aleksei1",
     "olesya": "olesya1",
     "bekzat": "yasmin",
-    "anastasiya": "anastasiya1", 
+    "anastasiya": "anastasiya1",
+    "vicentaadmin": "vicentatest", 
+    "vicentauser": "vicentatest", 
 }
 
 
@@ -473,3 +475,27 @@ def toggle_debug():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
+
+# SELECT
+# username,
+# COALESCE(SUM(units), 0) AS total_units
+# FROM billing_ledger
+# WHERE event = 'stylize_overage'
+# AND username IN ('aleksei','maria','amrita','alekseiadmin','olesya','anastasiya')
+# AND at >= '2025-10-27 00:00:00+00'
+# AND at <  NOW()
+# GROUP BY username
+# ORDER BY username;
+
+
+# SELECT
+# username,
+# COALESCE(SUM(units), 0) AS total_units
+# FROM billing_ledger
+# WHERE event = 'stylize_overage'
+# AND username IN ('bekzat')
+# AND at >= '2025-10-27 00:00:00+00'
+# AND at <  NOW()
+# GROUP BY username
+# ORDER BY username;
