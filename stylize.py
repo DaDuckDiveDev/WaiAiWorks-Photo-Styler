@@ -2,11 +2,15 @@ import replicate
 import os
 import uuid
 import requests
+import time
+import json
 
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN")
 client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
 def stylize_image(image_url, style):
+    started_at = time.monotonic()
+    request_id = uuid.uuid4().hex
     try:
         if style == "anime":
             prompt = (
@@ -59,10 +63,18 @@ def stylize_image(image_url, style):
             }
         )
 
+        generated_at = time.monotonic()
+        print(json.dumps({"event": "stylize_generated", "request_id": request_id,
+                          "style": style, "provider_wait_seconds": round(generated_at - started_at, 3)}), flush=True)
         output_path = os.path.join("static", "outputs", f"{uuid.uuid4()}.jpg")
-        img_data = requests.get(output_url).content
+        response = requests.get(str(output_url), timeout=(10, 60))
+        response.raise_for_status()
+        img_data = response.content
         with open(output_path, "wb") as f:
             f.write(img_data)
+        print(json.dumps({"event": "stylize_completed", "request_id": request_id,
+                          "download_seconds": round(time.monotonic() - generated_at, 3),
+                          "total_seconds": round(time.monotonic() - started_at, 3)}), flush=True)
         return output_path
 
     except Exception as e:

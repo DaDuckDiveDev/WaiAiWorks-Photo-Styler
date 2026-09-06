@@ -617,9 +617,8 @@
           const style = btn.dataset.style;
           const isDebug = btn.id === "debugBtn";
 
-          document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = true);
-
           if (!uploadedImageUrls.length) return;
+          document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = true);
           document.getElementById("uploadStatus").textContent = isDebug
             ? `Running in debug mode (${style}) — no credits used…`
             : `Weaving your ${btn.textContent.trim()} transformation…`;
@@ -627,6 +626,16 @@
           const gallery = document.getElementById("outputGallery");
           gallery.innerHTML = "";
           document.getElementById("spinner").style.display = "block";
+
+          const startedAt = Date.now();
+          const progressTimer = setInterval(() => {
+            const seconds = Math.floor((Date.now() - startedAt) / 1000);
+            document.getElementById("uploadStatus").textContent =
+              `Processing ${uploadedImageUrls.length} photo(s) — ${seconds}s elapsed. ` +
+              (seconds >= 30
+                ? "Some renders take a few minutes. Photos are processed one at a time; please keep this page open."
+                : "Results appear when the batch finishes.");
+          }, 1000);
 
           try {
             const resp = await fetch("/stylize", {
@@ -664,6 +673,7 @@
             document.getElementById("spinner").style.display = "none";
             document.getElementById("uploadStatus").textContent = "Something went wrong — please try again.";
           } finally {
+            clearInterval(progressTimer);
             document.querySelectorAll(".stylizeBtn").forEach(b => b.disabled = false);
           }
         };

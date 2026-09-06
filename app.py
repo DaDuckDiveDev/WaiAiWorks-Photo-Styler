@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for, session, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash
 from datetime import datetime, date, timedelta
 from stylize import stylize_image
 import os
@@ -79,19 +80,14 @@ OUTPUT_FOLDER = "static/outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# Hardcoded users
-USERS = {
-    "admin": "PhotoM1n",
-    "alekseiadmin": "alekseiadminalekseiadmin!",
-    "maria": "maria1",
-    "amrita": "amrita1",
-    "aleksei": "aleksei1",
-    "olesya": "olesya1",
-    "bekzat": "yasmin",
-    "anastasiya": "anastasiya1",
-    "vicentaadmin": "vicentatest", 
-    "vicentauser": "vicentatest", 
-}
+# Single shared studio account.
+USERS = {"general": 'scrypt:32768:8:1$kbwApbw3IHNf6wu7$7e6ab23062ed09e3719e6f5ef298b7cfed20eb43a6c413f72ec10be566d430a2af51951380158cd7fdd7f7cd5b97ec33c8637803045c3072a88dd3550b37b842'}
+
+
+@app.before_request
+def revoke_removed_accounts():
+    if "user" in session and session["user"] not in USERS:
+        session.clear()
 
 
 # User tracking model
@@ -165,7 +161,7 @@ def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        if username in USERS and USERS[username] == password:
+        if username in USERS and check_password_hash(USERS[username], password):
             session["user"] = username
             track_event(username, "login")
             return redirect(url_for("index"))
