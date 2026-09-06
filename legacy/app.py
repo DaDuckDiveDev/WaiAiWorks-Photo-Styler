@@ -13,7 +13,7 @@ load_dotenv()
 
 # App setup
 app = Flask(__name__)
-app.secret_key = os.getenv("app.secret_key")
+app.secret_key = os.environ.get("SESSION_SECRET") or os.urandom(32)
 
 # Flask config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
@@ -31,29 +31,14 @@ OUTPUT_FOLDER = "static/outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# Hardcoded users
-USERS = {
-    "admin": "PhotoM1n",
-    "hardrock": "photoHR",
-    "lulus": "photoLU",
-    "kuhio": "photoKU",
-    "luckystrike": "photoLS",
-    "dave": "photoDB",
-    "dksteak": "photoDK",
-    "geometry": "Geotest1",
-    "alexpix": "Pix2025",
-    "deepdish": "1pizza",
-    "vicentaadmin": "welcome1",
-    "vicentauser1": "vicenta1",
-    "vicentauser2": "vicenta2",
-    "vicentauser3": "vicenta3",
-    "vicentauser4": "vicenta4",
-    "vicentauser5": "vicenta5",
-    "AlekseiAdmin": "AlekseiAdminAlekseiAdmin!",
-    "Aleksei1": "1pizza",
-    "Aleksei2": "2pizza",
-    "Aleksei3": "3pizza",
-}
+# Single shared studio account.
+USERS = {"general": "general 1"}
+
+
+@app.before_request
+def revoke_removed_accounts():
+    if "user" in session and session["user"] not in USERS:
+        session.clear()
 
 
 # User tracking model

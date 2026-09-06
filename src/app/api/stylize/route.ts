@@ -1,0 +1,83 @@
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { getPreset } from "@/lib/styles";
+import { stylizeImage } from "@/lib/replicate";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { claimCredit, recordEvent, refundCredit } from "@/lib/usage";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // generous ceiling; client downscales first
+
+// Daily credits are the real cap. This is just a burst guard so a runaway
+// script can't open dozens of concurrent Replicate calls in a few seconds.
+const BURST = { limit: 12, windowMs: 60_000, blockMs: 60_000 };
+
+export async function POST(request: Request) {
+  const jar = await cookies();
+  const user = await verifySession(jar.get(SESSION_COOKIE)?.value);
+  if (!user) {
+    return NextResponse.json({ error: "Your session expired. Sign in again." }, { status: 401 });
+  }
+
+  const burst = rateLimit(`stylize:${user}:${clientIp(request)}`, BURST);
+  if (!burst.ok) {
+    return NextResponse.json(
+      { error: "Slow down a moment — too many renders at once." },
+      { status: 429, headers: { "Retry-After": String(burst.retryAfterSeconds) } }
+    );
+  }
+
+  let body: { image?: string; style?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Malformed request." }, { status: 400 });
+  }
+
+  const image = body.image ?? "";
+  const preset = getPreset(body.style ?? "");
+
+  if (!image.startsWith("data:image/")) {
+    return NextResponse.json({ error: "Unsupported image payload." }, { status: 400 });
+  }
+  if (image.length > MAX_IMAGE_BYTES) {
+    return NextResponse.json(
+      { error: "That image is too large. Try one under 8MB." },
+      { status: 413 }
+    );
+  }
+  if (!preset) {
+    return NextResponse.json({ error: "Unknown style." }, { status: 400 });
+  }
+
+  // Take the credit before spending money at Replicate, and hand it back if the
+  // render fails — a failed render shouldn't cost the user anything.
+  const claim = await claimCredit(user);
+  if (!claim.ok) {
+    return NextResponse.json(
+      {
+        error: "You're out of renders for today. Your allowance resets at midnight UTC.",
+        credits: 0,
+      },
+      { status: 402 }
+    );
+  }
+
+  await recordEvent(user, "uploads");
+
+  try {
+    const url = await stylizeImage(image, preset.prompt);
+    return NextResponse.json({ url, style: preset.id, credits: claim.remaining });
+  } catch (error) {
+    await refundCredit(user);
+    const message = error instanceof Error ? error.message : "Render failed.";
+    console.error(`[stylize] ${user} / ${preset.id}: ${message}`);
+    return NextResponse.json(
+      { error: message, credits: claim.remaining === null ? null : claim.remaining + 1 },
+      { status: 502 }
+    );
+  }
+}

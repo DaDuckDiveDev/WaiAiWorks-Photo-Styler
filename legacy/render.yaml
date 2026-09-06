@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ghibli-photo-app
+    env: python
+    buildCommand: ""
+    startCommand: "python app.py"
+    envVars:
+      - key: REPLICATE_API_TOKEN
+        sync: false

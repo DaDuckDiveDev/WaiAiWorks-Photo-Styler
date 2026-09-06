@@ -1,0 +1,20 @@
+node_modules
+.next
+out
+.env
+.env.local
+.vercel
+*.pem
+.DS_Store
+npm-debug.log*
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# legacy Flask runtime artifacts
+static/uploads
+static/outputs
+__pycache__
+
+# leftover WaiAi-era assets — delete these folders locally when convenient
+static/
+public/Waiai*.png

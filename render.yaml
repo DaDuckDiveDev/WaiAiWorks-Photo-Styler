@@ -1,9 +1,44 @@
+# Render blueprint for Kaiel Styler (Next.js on Node).
+#
+# The Postgres instance is deliberately NOT declared here. You already have one
+# on Render with real history in it, and a blueprint database block would try to
+# provision a second. Copy the existing instance's *Internal Database URL* into
+# the DATABASE_URL env var on this service instead.
+#
+# Nothing secret lives in this file. Every sensitive value is `sync: false`,
+# which means Render prompts for it rather than reading it from the repo — the
+# opposite of the old blueprint, which had the Replicate token committed in
+# plain text.
+
 services:
   - type: web
-    name: ghibli-photo-app
-    env: python
-    buildCommand: ""
-    startCommand: "python app.py"
+    name: kaiel-styler
+    runtime: node
+    plan: starter # free spins down after 15 min idle; not viable client-facing
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /login
     envVars:
+      - key: NODE_VERSION
+        value: "22"
+
+      # Required
       - key: REPLICATE_API_TOKEN
-        value: r8_YSs0EQ9NSU6rg8JeTyhBj17ywEHW96Q1YUZ6x
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # Usage tracking and daily credits. Omit DATABASE_URL and the app still
+      # runs — it just stops counting and stops enforcing credits.
+      - key: DATABASE_URL
+        sync: false
+      - key: DAILY_CREDITS
+        value: "20"
+
+      # Optional: support/report email via Resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SUPPORT_EMAIL_TO
+        sync: false
+      - key: SUPPORT_EMAIL_FROM
+        sync: false
