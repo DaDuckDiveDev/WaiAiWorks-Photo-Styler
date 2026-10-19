@@ -42,6 +42,45 @@ const LOOK_PROMPTS: Record<LookId, string> = {
     "Use soft glowing light, gentle watercolor-style shading, and flowing outlines. " +
     "Add a pastel palette and a romantic fantasy atmosphere. " +
     "Do not add new characters or distort the original ones.",
+  acrylic:
+    "Transform this photo into a bold acrylic painting on canvas. " +
+    `${PRESERVE_SUBJECTS} ` +
+    "Keep each person's face shape, skin tone, hairstyle, expression, pose, and clothing recognizable, " +
+    "and keep the original composition and camera angle. " +
+    "Paint with thick, visible brushstrokes and palette-knife texture, simplified shapes, and flat blocks of " +
+    "bright, saturated color — warm oranges, sunny yellows, and deep blues — with confident dark edges where shapes meet. " +
+    "Simplify the background into broad painted color fields. " +
+    "It must look like a real hand-painted acrylic on canvas, not a photo filter. No text or signature.",
+  felt:
+    "Transform this photo into a handmade needle-felted wool scene, like a cozy stop-motion craft diorama. " +
+    `${PRESERVE_SUBJECTS} ` +
+    "Turn each person into a soft felt figure that keeps their face shape, skin tone, hairstyle, expression, pose, " +
+    "and clothing colors and patterns recognizable. " +
+    "Use fuzzy wool fibers on every surface, rosy felted cheeks, simple stitched details, and small embroidered " +
+    "accents on clothing. " +
+    "Rebuild the background, furniture, and objects in felt and knitted textures, matching the original layout " +
+    "and camera angle. " +
+    "Soft, warm, even lighting with gentle shadows, like a tabletop miniature photographed up close. No text.",
+  tarot:
+    "Transform this photo into an illustrated vintage tarot card. " +
+    `${PRESERVE_SUBJECTS} ` +
+    "Draw each person as a stylized tarot figure who keeps their face, skin tone, hairstyle, expression, pose, " +
+    "and outfit recognizable, in the original arrangement. " +
+    "Use fine ink linework, flat muted colors — sage green, mustard gold, dusty teal, and cream — and a subtle " +
+    "aged-paper grain. " +
+    "Frame the whole scene inside an ornate tarot card border with celestial motifs: a smiling sun, a crescent moon, " +
+    "and small stars. " +
+    "Simplify the background into a decorative illustrated backdrop. " +
+    "Leave out any text, titles, numbers, or lettering.",
+  marble:
+    "Transform this photo into a classical sculpture carved from polished white marble. " +
+    `${PRESERVE_SUBJECTS} ` +
+    "Turn every person into carved stone as one statue group on a stone plinth, keeping each face, hairstyle, " +
+    "expression, pose, body type, and clothing recognizable, with flowing drapery folds and fine chisel detail. " +
+    "Show soft gray veining in the marble and smooth, polished highlights. " +
+    "Place the statue in a grand, softly lit museum gallery with columns and a patterned stone floor, " +
+    "keeping the original camera angle and arrangement of people. " +
+    "Everything on the statue is white marble: no painted skin, hair, or clothing colors.",
   // Written for nightclub and event shoots: it keeps the venue and turns up the neon.
   // Up to about 435 T5 tokens with a fix added; FLUX Kontext reads at most 512,
   // and a fix is appended last, so keep any additions short.

@@ -11,6 +11,10 @@ const SWATCH_CLASSES: Record<FinishId, string> = {
   pixar: "swatch-pixar",
   comic: "swatch-comic",
   disney: "swatch-disney",
+  acrylic: "swatch-acrylic",
+  felt: "swatch-felt",
+  tarot: "swatch-tarot",
+  marble: "swatch-marble",
   nightclub: "swatch-nightclub",
 };
 

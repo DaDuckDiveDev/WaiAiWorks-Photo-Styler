@@ -533,6 +533,98 @@
     background: #1d1a4a;
   }
 
+  /* Acrylic: thick, sunny brushstrokes over bands of bold color. */
+  .swatch-acrylic {
+    background:
+      repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.13) 0 2px, transparent 2px 7px),
+      linear-gradient(172deg, #ffd23f 0 40%, #2f6fd6 40% 52%, #ff7a1a 52% 80%, #d9481a 80%);
+  }
+
+  .swatch-acrylic::before {
+    left: 16%;
+    right: 34%;
+    top: 14%;
+    height: 22%;
+    border-radius: 45% 55% 50% 50% / 60% 40% 60% 40%;
+    background: #fff2b8;
+    transform: rotate(-5deg);
+    opacity: 0.85;
+  }
+
+  .swatch-acrylic::after {
+    left: 48%;
+    right: 8%;
+    bottom: 12%;
+    height: 16%;
+    border-radius: 50% 40% 55% 45% / 60% 50% 50% 40%;
+    background: #ffb066;
+    transform: rotate(4deg);
+    opacity: 0.8;
+  }
+
+  /* Felt: woolly fibers, a brick wall and a table, a stitched seam. */
+  .swatch-felt {
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.3) 0.7px, transparent 1.3px) 0 0 / 4px 4px,
+      radial-gradient(circle at 3px 2px, rgba(90, 40, 30, 0.16) 0.7px, transparent 1.3px) 0 0 / 5px 5px,
+      linear-gradient(180deg, #c95b4c 0%, #b44c3f 58%, #8d5d3e 58%, #774c31 100%);
+  }
+
+  .swatch-felt::before {
+    width: 26%;
+    aspect-ratio: 1;
+    left: 37%;
+    top: 14%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff4ea, #f0c6b0 72%);
+    box-shadow:
+      0 0 0 1.5px rgba(255, 255, 255, 0.35),
+      0 3px 6px rgba(0, 0, 0, 0.25);
+  }
+
+  .swatch-felt::after {
+    left: 8%;
+    right: 8%;
+    bottom: 20%;
+    border-top: 2px dashed rgba(255, 236, 214, 0.75);
+  }
+
+  /* Tarot: a gold sun and stars on sage, inside a double border. */
+  .swatch-tarot {
+    background:
+      radial-gradient(circle at 26% 46%, #f2c14e 0 10%, rgba(242, 193, 78, 0.35) 11% 15%, transparent 16%),
+      radial-gradient(circle at 68% 28%, #f6e7b0 0 1.5px, transparent 2px),
+      radial-gradient(circle at 84% 58%, #f6e7b0 0 1.5px, transparent 2px),
+      radial-gradient(circle at 56% 70%, #f6e7b0 0 1px, transparent 1.6px),
+      linear-gradient(180deg, #93b5ad 0%, #6c948d 100%);
+  }
+
+  .swatch-tarot::before {
+    inset: 4px;
+    border: 1.5px solid #f3e6c4;
+    border-radius: 3px;
+  }
+
+  .swatch-tarot::after {
+    inset: 7px;
+    border: 1px solid rgba(201, 154, 60, 0.9);
+    border-radius: 2px;
+  }
+
+  /* Marble: polished white stone with soft gray veins, under gallery light. */
+  .swatch-marble {
+    background:
+      linear-gradient(118deg, transparent 0 28%, rgba(110, 110, 122, 0.42) 29%, transparent 31.5%),
+      linear-gradient(64deg, transparent 0 56%, rgba(130, 130, 142, 0.32) 57%, transparent 58.5%),
+      linear-gradient(152deg, transparent 0 72%, rgba(105, 105, 118, 0.28) 73%, transparent 74%),
+      radial-gradient(ellipse at 30% 18%, #ffffff, #ebe8e2 58%, #cbc6bd 100%);
+  }
+
+  .swatch-marble::before {
+    inset: 0;
+    background: linear-gradient(90deg, rgba(60, 45, 30, 0.35), transparent 18%, transparent 82%, rgba(60, 45, 30, 0.35));
+  }
+
   /* Nightclub: a dark room, crossing light beams, a glowing neon tube. */
   .swatch-nightclub {
     background:

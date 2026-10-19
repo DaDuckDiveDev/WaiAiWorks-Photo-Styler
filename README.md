@@ -2,8 +2,9 @@
 
 AI photo studio for event and portrait work. Upload up to five photos, pick a
 look, and get illustrated renders back — anime, 3D animated, comic,
-storybook, or nightclub. Photo fixes repair the shot where someone blinked or
-looked away, either as a real photo or in any of the looks.
+storybook, acrylic, felt art, tarot card, marble statue, or nightclub. Photo
+fixes repair the shot where someone blinked or looked away, either as a real
+photo or in any of the looks.
 
 Built on the Kaiel Systems design system (Next.js 15, TypeScript, Tailwind,
 Kaiel Abyss dark UI). Runs on any Node.js host: SiteGround Node.js Projects or
@@ -11,8 +12,9 @@ Render (see Hosting below), at **styler.kaielsystems.com**.
 
 ## What's in the studio
 
-- **Looks**: Anime, 3D Animated, Comic, Storybook, and Nightclub (a 2D
-  animated-film frame with neon club lighting, written for event shoots).
+- **Looks**: Anime, 3D Animated, Comic, Storybook, Acrylic, Felt Art, Tarot
+  Card, Marble Statue, and Nightclub (a 2D animated-film frame with neon club
+  lighting, written for event shoots).
 - **Photo fixes**: Open closed eyes, Look at the camera, and Open eyes + look
   at camera. Each fix expands into its finishes: **Photo** keeps it a real
   photograph and only changes the eyes; any look fixes the eyes and restyles

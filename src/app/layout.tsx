@@ -17,7 +17,7 @@ const archivo = localFont({
 export const metadata: Metadata = {
   title: "Kaiel Styler | AI Photo Studio",
   description:
-    "Kaiel Styler turns event and portrait photography into illustrated artwork and fixes closed or wandering eyes — anime, 3D animated, comic, and storybook renders in seconds.",
+    "Kaiel Styler turns event and portrait photography into illustrated artwork and fixes closed or wandering eyes — anime, 3D animated, acrylic, felt, tarot, marble, nightclub, and more, in seconds.",
   robots: { index: false, follow: false },
 };
 

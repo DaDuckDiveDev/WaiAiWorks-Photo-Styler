@@ -11,7 +11,16 @@
  */
 
 /* Ids are unchanged from the Flask app so older history still lines up. */
-export type LookId = "anime" | "pixar" | "comic" | "disney" | "nightclub";
+export type LookId =
+  | "anime"
+  | "pixar"
+  | "comic"
+  | "disney"
+  | "acrylic"
+  | "felt"
+  | "tarot"
+  | "marble"
+  | "nightclub";
 export type FinishId = LookId | "photo";
 export type FixId = "open-eyes" | "eye-contact" | "eyes-both";
 
@@ -31,6 +40,10 @@ export const LOOKS: readonly Look[] = [
   { id: "pixar", label: "3D Animated", blurb: "Soft cinematic light, glossy detail." },
   { id: "comic", label: "Comic", blurb: "Bold ink, cel shading, halftone punch." },
   { id: "disney", label: "Storybook", blurb: "Dreamy glow, romantic fantasy palette." },
+  { id: "acrylic", label: "Acrylic", blurb: "Thick brushstrokes, bold blocks of color." },
+  { id: "felt", label: "Felt Art", blurb: "Needle-felted wool, cozy handmade craft." },
+  { id: "tarot", label: "Tarot Card", blurb: "Vintage ink, sun and stars, ornate border." },
+  { id: "marble", label: "Marble Statue", blurb: "Carved white marble in a museum hall." },
   {
     id: "nightclub",
     label: "Nightclub",

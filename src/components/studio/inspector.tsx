@@ -24,6 +24,13 @@ const FIX_ICONS: Record<FixId, LucideIcon> = {
 /* looks and fixes                                                             */
 /* -------------------------------------------------------------------------- */
 
+/** One line under the grid describing the chosen look, so the cards stay compact. */
+function lookBlurb(recipe: Recipe): string {
+  if (recipe.fix) return "";
+  const look = LOOKS.find((item) => item.id === recipe.finish);
+  return look ? `${look.label}: ${look.blurb}` : "";
+}
+
 export function RecipePicker({
   recipe,
   onRecipe,
@@ -41,37 +48,38 @@ export function RecipePicker({
         <h2 id="look-heading" className="text-sm font-semibold text-pearl">
           Look
         </h2>
-        <div className="mt-3 grid grid-cols-2 gap-2.5">
-          {LOOKS.map((look, index) => {
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {LOOKS.map((look) => {
             const selected = recipe.fix === null && recipe.finish === look.id;
-            // An odd one out at the end spans the row instead of sitting alone.
-            const wide = index === LOOKS.length - 1 && LOOKS.length % 2 === 1;
             return (
               <button
                 key={look.id}
                 type="button"
                 aria-pressed={selected}
+                title={look.blurb}
                 onClick={() => onRecipe({ finish: look.id, fix: null })}
-                className={`rounded-xl border p-1.5 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
-                  wide ? "col-span-2" : ""
-                } ${
+                className={`rounded-xl border p-1 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
                   selected
                     ? "border-reef bg-reef/[0.07] shadow-glow"
                     : "border-rim bg-trench/50 hover:border-rim-strong hover:bg-trench"
                 }`}
               >
-                <Swatch finish={look.id} className="h-11 w-full" />
-                <span className="mt-2 flex items-center justify-between gap-2 px-1.5">
-                  <span className="text-sm font-semibold text-pearl">{look.label}</span>
-                  {selected ? <Check className="h-4 w-4 shrink-0 text-reef" /> : null}
+                <span className="relative block">
+                  <Swatch finish={look.id} className="h-11 w-full" />
+                  {selected ? (
+                    <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-reef text-void">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                  ) : null}
                 </span>
-                <span className="mt-0.5 block px-1.5 pb-1.5 text-xs leading-snug text-haze">
-                  {look.blurb}
+                <span className="mt-1.5 block px-1 pb-1 text-[0.8125rem] font-semibold leading-tight text-pearl">
+                  {look.label}
                 </span>
               </button>
             );
           })}
         </div>
+        <p className="mt-2.5 min-h-[1rem] text-xs leading-snug text-haze">{lookBlurb(recipe)}</p>
       </section>
 
       <section aria-labelledby="fix-heading">
