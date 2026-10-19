@@ -243,7 +243,7 @@ export function RenderControls({
   credits: number | null;
   batch: Batch | null;
   modKey: string;
-  onRender: () => void;
+  onRender: () => void | Promise<void>;
   onStop: () => void;
 }) {
   const count = scope === "one" || total <= 1 ? Math.min(total, 1) : total;
@@ -278,14 +278,11 @@ export function RenderControls({
 
       <button
         type="button"
-        onClick={onRender}
-        disabled={total > 0 && outOfCredits}
+        onClick={() => void onRender()}
         className="btn-primary w-full px-5 py-3.5 text-[0.9375rem]"
       >
         {total === 0 ? "Add photos" : renderButtonLabel(count, scope, total)}
-        {total > 0 && !outOfCredits ? (
-          <span className="kbd hidden lg:inline-flex">{modKey} ↵</span>
-        ) : null}
+        {total > 0 ? <span className="kbd hidden lg:inline-flex">{modKey} ↵</span> : null}
       </button>
 
       {total > 0 ? (

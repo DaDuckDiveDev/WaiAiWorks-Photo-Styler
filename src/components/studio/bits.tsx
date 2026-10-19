@@ -20,7 +20,11 @@ export function Swatch({ finish, className = "" }: { finish: FinishId; className
   );
 }
 
-/** Live m:ss counter. Ticks on its own so the rest of the studio stays still. */
+/**
+ * Live m:ss counter. Ticks on its own so the rest of the studio stays still.
+ * Hidden from screen readers: it sits inside status regions, and a clock that
+ * changes every second would be read out every second.
+ */
 export function Elapsed({ since, until }: { since: number; until?: number }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -28,7 +32,11 @@ export function Elapsed({ since, until }: { since: number; until?: number }) {
     const timer = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(timer);
   }, [until]);
-  return <span className="tnum">{formatElapsed((until ?? now) - since)}</span>;
+  return (
+    <span aria-hidden="true" className="tnum">
+      {formatElapsed((until ?? now) - since)}
+    </span>
+  );
 }
 
 /** Seconds since `since`, re-evaluated every second. */

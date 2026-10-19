@@ -31,14 +31,17 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { image?: string; finish?: string; fix?: string | null; style?: string };
+  let body: { image?: unknown; finish?: unknown; fix?: unknown; style?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Malformed request." }, { status: 400 });
   }
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Malformed request." }, { status: 400 });
+  }
 
-  const image = body.image ?? "";
+  const image = typeof body.image === "string" ? body.image : "";
   // `style` is the field older clients send; it maps straight onto a finish.
   const recipe = parseRecipe({ finish: body.finish ?? body.style, fix: body.fix });
 

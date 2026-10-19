@@ -5,9 +5,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogoMark } from "@/components/logo-mark";
 
+/**
+ * Only ever return to a page on this site. Parsing with the URL API (rather
+ * than checking for a leading "/") catches the tricks browsers normalize into
+ * another host, like "/\evil.com" or a tab after the slash.
+ */
 function safeNext(value: string | null): string {
-  // Only same-site paths; never bounce a fresh session to another origin.
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+  if (!value) return "/";
+  try {
+    const target = new URL(value, window.location.origin);
+    if (target.origin !== window.location.origin) return "/";
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return "/";
+  }
 }
 
 function LoginForm() {

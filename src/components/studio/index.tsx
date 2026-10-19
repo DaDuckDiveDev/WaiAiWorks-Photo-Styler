@@ -71,15 +71,19 @@ export function Studio({
   const modKey = useModKey();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const shotsRef = useRef<Shot[]>([]);
+  /*
+   * Photo counts kept in step synchronously, so two adds in quick succession
+   * (a drop and then a paste, say) can't both see the same free room.
+   * `shotCount` is what's in the strip; `pendingCount` is still being read.
+   */
+  const shotCount = useRef(0);
+  const pendingCount = useRef(0);
   const batchRef = useRef<Batch | null>(null);
   const stopRef = useRef(false);
   /** The viewer follows the photo being rendered until the user picks one. */
   const followRef = useRef(true);
-
-  useEffect(() => {
-    shotsRef.current = shots;
-  }, [shots]);
+  /** The batch being followed. Outlives the batch so its last hand-off still lands. */
+  const followedBatch = useRef<Batch | null>(null);
 
   /* ---- remembered choices (per browser, best effort) ---- */
 
@@ -122,6 +126,15 @@ export function Studio({
     [shots]
   );
 
+  // Whatever changed the strip, keep a photo that exists selected.
+  useEffect(() => {
+    if (!shots.length) {
+      if (selectedId !== null) setSelectedId(null);
+    } else if (!shots.some((shot) => shot.id === selectedId)) {
+      setSelectedId(shots[0].id);
+    }
+  }, [shots, selectedId]);
+
   const notify = useCallback(
     (message: string, tone: Toast["tone"] = "info", action?: Toast["action"]) =>
       setToast({ id: Date.now(), message, tone, action }),
@@ -146,14 +159,16 @@ export function Studio({
         return;
       }
 
-      const room = MAX_SHOTS - shotsRef.current.length;
+      const room = MAX_SHOTS - shotCount.current - pendingCount.current;
       if (room <= 0) {
         notify(`A batch holds ${MAX_SHOTS} photos. Remove one to add another.`, "warn");
         return;
       }
 
       const accepted = images.slice(0, room);
+      pendingCount.current += accepted.length;
       const results = await Promise.allSettled(accepted.map((file) => prepareImage(file)));
+      pendingCount.current -= accepted.length;
       const prepared = results.flatMap((result) =>
         result.status === "fulfilled" ? [result.value] : []
       );
@@ -162,6 +177,7 @@ export function Studio({
         .map((file) => file.name);
 
       if (prepared.length) {
+        shotCount.current = Math.min(MAX_SHOTS, shotCount.current + prepared.length);
         setShots((current) =>
           [
             ...current,
@@ -191,6 +207,7 @@ export function Studio({
   function removeShot(id: string) {
     const index = shots.findIndex((shot) => shot.id === id);
     const remaining = shots.filter((shot) => shot.id !== id);
+    shotCount.current = remaining.length;
     setShots(remaining);
     if (selectedId === id) {
       setSelectedId(remaining[Math.min(index, remaining.length - 1)]?.id ?? null);
@@ -198,6 +215,7 @@ export function Studio({
   }
 
   function clearAll() {
+    shotCount.current = 0;
     setShots([]);
     setSelectedId(null);
     if (inputRef.current) inputRef.current.value = "";
@@ -298,6 +316,7 @@ export function Studio({
       const jobs = targets.map((shot) => ({ shotId: shot.id, versionId: newId() }));
       const next: Batch = { jobs, done: 0, startedAt: Date.now(), stopping: false };
       batchRef.current = next;
+      followedBatch.current = next;
       stopRef.current = false;
       followRef.current = true;
       setBatch(next);
@@ -329,7 +348,7 @@ export function Studio({
           // Let the photo that just finished hold the viewer long enough to
           // see its result before moving on to the one now rendering.
           setTimeout(() => {
-            if (followRef.current && batchRef.current === next) setSelectedId(job.shotId);
+            if (followRef.current && followedBatch.current === next) setSelectedId(job.shotId);
           }, REVEAL_DWELL_MS);
         }
 
@@ -362,34 +381,54 @@ export function Studio({
     [dropVersions, notify, runVersion]
   );
 
-  const startRender = useCallback(() => {
+  /**
+   * True if a render may start. A zero balance is re-checked with the server
+   * first: the allowance resets at midnight UTC while the tab may stay open.
+   */
+  const hasCredit = useCallback(async (): Promise<boolean> => {
+    if (credits === null || credits > 0) return true;
+    let balance: number | null = credits;
+    try {
+      const response = await fetch("/api/usage", { cache: "no-store" });
+      if (response.ok) {
+        const data = (await response.json()) as { credits?: number | null };
+        if (typeof data.credits === "number" || data.credits === null) balance = data.credits;
+      }
+    } catch {
+      // Offline: fall through with the balance we have.
+    }
+    setCredits(balance);
+    if (balance !== null && balance <= 0) {
+      notify("No renders left for today. They reset at midnight UTC.", "warn");
+      return false;
+    }
+    return true;
+  }, [credits, notify]);
+
+  const startRender = useCallback(async () => {
     if (batchRef.current) return;
     if (!shots.length) {
       chooseFiles();
       return;
     }
-    if (credits !== null && credits <= 0) {
-      notify("No renders left for today. They reset at midnight UTC.", "warn");
-      return;
-    }
     const targets = scope === "one" || shots.length === 1 ? (selected ? [selected] : []) : shots;
-    void runBatch(targets, recipe);
-  }, [chooseFiles, credits, notify, recipe, runBatch, scope, selected, shots]);
+    const chosen = recipe;
+    if (!(await hasCredit())) return;
+    void runBatch(targets, chosen);
+  }, [chooseFiles, hasCredit, recipe, runBatch, scope, selected, shots]);
 
   function stopBatch() {
     stopRef.current = true;
     setBatch((current) => (current ? { ...current, stopping: true } : current));
   }
 
-  function retry(version: Version) {
+  async function retry(version: Version) {
     if (batchRef.current || !selected) return;
-    if (credits !== null && credits <= 0) {
-      notify("No renders left for today. They reset at midnight UTC.", "warn");
-      return;
-    }
+    const shot = selected;
+    if (!(await hasCredit())) return;
     // Replace the failed attempt rather than stacking failures up.
     dropVersions([version.id]);
-    void runBatch([selected], version.recipe);
+    void runBatch([shot], version.recipe);
   }
 
   function report(version: Version) {
@@ -420,6 +459,20 @@ export function Studio({
     });
   }
 
+  /* ---- leaving mid-batch ---- */
+
+  const rendering = batch !== null;
+  useEffect(() => {
+    if (!rendering) return;
+    // Results live only in this tab; warn before a reload or close drops them.
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [rendering]);
+
   /* ---- keyboard and paste ---- */
 
   useEffect(() => {
@@ -430,7 +483,7 @@ export function Studio({
 
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
         event.preventDefault();
-        startRender();
+        void startRender();
         return;
       }
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -509,7 +562,13 @@ export function Studio({
           <nav aria-label="Studio" className="flex items-center gap-0.5 sm:gap-1">
             {credits !== null ? <CreditMeter credits={credits} allowance={allowance} /> : null}
             {admin ? (
-              <Link href="/admin/stats" aria-label="Usage" className="btn-ghost px-2.5 py-2 text-sm">
+              <Link
+                href="/admin/stats"
+                target="_blank"
+                rel="noopener"
+                aria-label="Usage, opens in a new tab"
+                className="btn-ghost px-2.5 py-2 text-sm"
+              >
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden md:inline">Usage</span>
               </Link>
@@ -787,7 +846,6 @@ function MobileRenderBar({
             <button
               type="button"
               onClick={onRender}
-              disabled={outOfCredits && total > 0}
               className="btn-primary shrink-0 px-5 py-3 text-sm"
             >
               {total === 0 ? "Add photos" : count > 1 ? `Render ${count}` : "Render"}

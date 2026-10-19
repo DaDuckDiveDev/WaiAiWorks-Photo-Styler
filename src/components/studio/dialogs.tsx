@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { Spinner } from "./bits";
@@ -110,14 +110,25 @@ export function SupportModal({
 }) {
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Each time the dialog opens, start from that request's draft.
+  // Each time the dialog opens, start from that request's draft. A pending
+  // auto-close from the previous message must not close the new one.
   useEffect(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
     if (request) {
       setMessage(request.draft);
       setState("idle");
     }
   }, [request]);
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    []
+  );
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -130,7 +141,7 @@ export function SupportModal({
       });
       if (!response.ok) throw new Error();
       setState("sent");
-      setTimeout(onClose, 1400);
+      closeTimer.current = setTimeout(onClose, 1400);
     } catch {
       setState("error");
     }

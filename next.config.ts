@@ -8,7 +8,9 @@ const CSP = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data: blob: https://*.replicate.delivery",
+  // Replicate serves outputs from both replicate.delivery and its subdomains;
+  // a "*." wildcard alone doesn't cover the bare host.
+  "img-src 'self' data: blob: https://replicate.delivery https://*.replicate.delivery",
   "connect-src 'self'",
   // Archivo is bundled with the app, so no third-party font host is needed.
   "font-src 'self' data:",

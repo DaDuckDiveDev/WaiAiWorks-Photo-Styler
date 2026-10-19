@@ -16,6 +16,13 @@ export function Modal({
   children: React.ReactNode;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  // Callers pass inline arrows, so read the latest one through a ref. Keying
+  // the effect on it would re-run focus handling on every parent render and
+  // pull focus out of whatever field the user is typing in.
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -23,15 +30,15 @@ export function Modal({
     const opener = document.activeElement as HTMLElement | null;
     const frame = requestAnimationFrame(() => dialogRef.current?.focus({ preventScroll: true }));
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") closeRef.current();
     };
     window.addEventListener("keydown", onKey);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("keydown", onKey);
-      opener?.focus?.();
+      opener?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <AnimatePresence>
