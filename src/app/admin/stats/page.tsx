@@ -281,10 +281,11 @@ function RenderSections({
         {recent.length === 0 ? null : (
           <div className="panel mt-5 overflow-hidden rounded-2xl">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[52rem] text-left text-sm">
+              <table className="w-full min-w-[58rem] text-left text-sm">
                 <thead>
                   <tr className="border-b border-rim text-xs text-haze">
                     <Th className="pl-6">When</Th>
+                    <Th>Who</Th>
                     <Th>Look and fix</Th>
                     <Th>Result</Th>
                     <Th align="right">Time</Th>
@@ -297,6 +298,7 @@ function RenderSections({
                       <td className="whitespace-nowrap py-3.5 pl-6 pr-4 text-haze">
                         {formatDateTime(entry.createdAt)}
                       </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-haze">{entry.username}</td>
                       <td className="px-4 py-3.5 font-medium text-pearl">
                         {labelFor(entry.finish, entry.fix)}
                       </td>

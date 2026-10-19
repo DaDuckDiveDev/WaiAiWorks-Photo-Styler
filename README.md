@@ -50,10 +50,13 @@ npm run dev
 Required env: `REPLICATE_API_TOKEN`, `SESSION_SECRET`.
 See `.env.example` for the full list.
 
-The only login is username `general`, password `general 1` (including the space).
-The password is stored as a PBKDF2 hash. Old `STYLER_USERS` settings are ignored,
-and sessions belonging to removed accounts are rejected. All users share this
-account's daily credit allowance. Admin access remains controlled by `STYLER_ADMINS`.
+Accounts live in `getUsers()` in `src/lib/auth.ts`: `general`, `bekzat`, and
+`aleksei`. Passwords are stored only as PBKDF2 hashes; to add or reset one, run
+`npm run hash-password -- <username>`, paste the hash into `getUsers()`, and hand
+out the printed password. Old `STYLER_USERS` settings are ignored, and sessions
+belonging to removed accounts are rejected. Each account gets its own daily
+credit allowance, and the render log records which account ran each render.
+Who can open the Usage page is controlled by `STYLER_ADMINS`.
 
 ## How a render is described
 

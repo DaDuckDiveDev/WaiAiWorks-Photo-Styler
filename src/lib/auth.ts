@@ -1,8 +1,9 @@
 /**
  * Session auth.
  *
- * The studio uses one shared account. Its password is stored as a PBKDF2 hash.
- * Legacy STYLER_USERS settings are intentionally ignored.
+ * Accounts are listed in getUsers() below, each with a PBKDF2 password hash
+ * (make one with `npm run hash-password`). Legacy STYLER_USERS settings are
+ * intentionally ignored. Who can open the Usage page is STYLER_ADMINS.
  *
  * Sessions are stateless: a signed, expiring cookie carrying only the
  * username. Everything here uses Web Crypto so the module loads in both the
@@ -65,10 +66,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** The only account allowed to sign in. */
+/** The accounts allowed to sign in: username → PBKDF2 hash. */
 export function getUsers(): Map<string, string> {
   return new Map([
     ["general", "pbkdf2$210000$wdSMu5GASiWLh0VlxE1iFg$fgmx6XRqOuE4jlvq5ahcbWnlK3YOTnzevW5cowIhsi0"],
+    ["bekzat", "pbkdf2$210000$OrwvWwSmU3UFdtrtBTirlA$oJyC6CPTV6ahA3bSnGP9fHcFqmX4urE5kTiK7R1dUMY"],
+    ["aleksei", "pbkdf2$210000$eCqpvT0W4pv3Z_AnVZiF2w$fiG77_ylQBhTHqN3UIVPOeQjCsbbq5cAkrW35GmXoso"],
   ]);
 }
 
@@ -155,7 +158,7 @@ export async function authenticate(
   return key;
 }
 
-/** The one account allowed to see /admin/stats. */
+/** Whether this account may see /admin/stats (the STYLER_ADMINS list). */
 export function isAdmin(username: string | null): boolean {
   if (!username) return false;
   const admins = (process.env.STYLER_ADMINS ?? "admin")
