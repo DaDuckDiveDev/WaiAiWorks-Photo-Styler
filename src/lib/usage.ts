@@ -48,6 +48,12 @@ const globalForPg = globalThis as unknown as {
   __kaielStylerSchema?: Promise<void>;
 };
 
+// Postgres 15+ doesn't let a non-owner create tables in `public`, and shared
+// hosts such as SiteGround hand out databases that way. When `public` turns out
+// to be read-only, the tables go in this schema instead, which the app's user
+// owns. Where `public` is writable (Render, a local database) it's never created.
+const PRIVATE_SCHEMA = "kaiel_styler";
+
 function getPool(): Pool {
   if (!globalForPg.__kaielStylerPool) {
     const connectionString = process.env.DATABASE_URL as string;
@@ -56,6 +62,8 @@ function getPool(): Pool {
     const external = !/@[^/]*\.internal|localhost|127\.0\.0\.1/.test(connectionString);
     globalForPg.__kaielStylerPool = new Pool({
       connectionString,
+      // Look in the app's own schema first; see ensureSchema().
+      options: `-c search_path=${PRIVATE_SCHEMA},public`,
       max: 5,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 8_000,
@@ -99,6 +107,13 @@ function ensureSchema(): Promise<void> {
   if (!globalForPg.__kaielStylerSchema) {
     globalForPg.__kaielStylerSchema = getPool()
       .query(SCHEMA)
+      .catch(async (error: Error) => {
+        if (!/permission denied for schema public/i.test(error.message)) throw error;
+        await getPool().query(
+          `CREATE SCHEMA IF NOT EXISTS ${PRIVATE_SCHEMA} AUTHORIZATION CURRENT_USER`
+        );
+        return getPool().query(SCHEMA);
+      })
       .then(() => undefined)
       .catch((error) => {
         // Let the next call retry rather than caching the failure forever.
@@ -253,6 +268,56 @@ export async function refundCredit(username: string): Promise<void> {
     );
   } catch (error) {
     console.error("[usage] refundCredit failed:", (error as Error).message);
+  }
+}
+
+export type DatabaseStatus =
+  | { state: "off" }
+  | { state: "connected" }
+  | { state: "error"; message: string; hint: string };
+
+// Plain-language next steps for the failures people actually hit.
+const HINTS: [RegExp, string][] = [
+  [/password authentication failed/i, "The user or password in DATABASE_URL is wrong."],
+  [/database "[^"]*" does not exist/i, "The database name in DATABASE_URL is wrong."],
+  [/role "[^"]*" does not exist/i, "The user name in DATABASE_URL is wrong."],
+  [
+    /permission denied/i,
+    "The database user isn't allowed to create tables. Give it all privileges on this database in the host's PostgreSQL settings.",
+  ],
+  [/no pg_hba\.conf entry/i, "The database server refused this connection. Allow it in the host's remote access list."],
+  [/ssl/i, "Add ?sslmode=disable to the end of DATABASE_URL."],
+  [
+    /ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|timeout/i,
+    "The app can't reach the database server. Check the host and port in DATABASE_URL.",
+  ],
+];
+
+/** Hide the password if a driver error ever echoes the connection string. */
+function scrub(message: string): string {
+  try {
+    const password = decodeURIComponent(new URL(process.env.DATABASE_URL ?? "").password);
+    return password ? message.split(password).join("•••") : message;
+  } catch {
+    return message;
+  }
+}
+
+/**
+ * Connects, creates the tables if needed, and runs a trivial query, so the
+ * admin page can say plainly whether tracking is working and, if not, why.
+ */
+export async function databaseStatus(): Promise<DatabaseStatus> {
+  if (!trackingEnabled()) return { state: "off" };
+  try {
+    await query("SELECT 1");
+    return { state: "connected" };
+  } catch (error) {
+    const raw = (error as Error).message || "Unknown error";
+    console.error("[usage] databaseStatus failed:", raw);
+    const message = scrub(raw).slice(0, 300);
+    const hint = HINTS.find(([pattern]) => pattern.test(raw))?.[1] ?? "Check DATABASE_URL.";
+    return { state: "error", message, hint };
   }
 }
 

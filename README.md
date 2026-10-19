@@ -36,7 +36,9 @@ Render (see Hosting below), at **styler.kaielsystems.com**.
 - Postgres for usage counters, daily credits, and a render log (one row per
   render: look, fix, result, time, Replicate ID; never photos or prompts),
   shown on /admin/stats with CSV exports. Optional; without it the app runs
-  unmetered and records nothing. Tables are created on first use
+  unmetered and records nothing. Tables are created on first use (in a
+  `kaiel_styler` schema when the host doesn't allow tables in `public`), and
+  the Usage page says whether the database is connected and, if not, why
 - Sessions are signed cookies, images never touch a disk
 
 ## Setup

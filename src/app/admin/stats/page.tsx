@@ -7,10 +7,12 @@ import { LogoMark } from "@/components/logo-mark";
 import { parseRecipe, recipeLabel } from "@/lib/catalog";
 import {
   dailyCredits,
+  databaseStatus,
   listUsage,
   recentRenders,
   renderBreakdown,
   trackingEnabled,
+  type DatabaseStatus,
   type RenderLogEntry,
 } from "@/lib/usage";
 
@@ -19,6 +21,31 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Usage · Kaiel Styler",
 };
+
+function DatabaseBadge({ status }: { status: DatabaseStatus }) {
+  if (status.state === "off") return null;
+  if (status.state === "connected") {
+    return (
+      <p className="mt-6 inline-flex items-center gap-2 text-sm text-haze" role="status">
+        <span className="h-2 w-2 rounded-full bg-seaglass" aria-hidden />
+        Database connected
+      </p>
+    );
+  }
+  return (
+    <div className="panel mt-8 rounded-2xl border-coral/40 p-6 text-sm" role="alert">
+      <p className="flex items-center gap-2 font-semibold text-coral">
+        <span className="h-2 w-2 rounded-full bg-coral" aria-hidden />
+        Database not connected — nothing is being recorded
+      </p>
+      <p className="mt-3 text-pearl">{status.hint}</p>
+      <p className="mt-2 break-words font-mono text-xs text-haze">{status.message}</p>
+      <p className="mt-3 text-xs text-dim">
+        Renders still work while this is broken; they just aren&rsquo;t counted.
+      </p>
+    </div>
+  );
+}
 
 function formatDateTime(value: string | null): string {
   if (!value) return "—";
@@ -43,6 +70,8 @@ export default async function StatsPage() {
   // 404 rather than 403 — a non-admin has no reason to learn this page exists.
   if (!isAdmin(username)) notFound();
 
+  // Status first: it creates the tables, so the reads below don't race it.
+  const status = await databaseStatus();
   const [rows, breakdown, recent] = await Promise.all([
     listUsage(),
     renderBreakdown(30),
@@ -79,12 +108,14 @@ export default async function StatsPage() {
         </p>
       </div>
 
+      <DatabaseBadge status={status} />
+
       {!trackingEnabled() ? (
         <p className="panel mt-8 rounded-2xl p-6 text-sm text-haze">
           Tracking is off — no <code className="text-reef">DATABASE_URL</code>{" "}
           is set on this environment, so nothing is being recorded.
         </p>
-      ) : rows.length === 0 ? (
+      ) : status.state === "error" ? null : rows.length === 0 ? (
         <p className="panel mt-8 rounded-2xl p-6 text-sm text-haze">
           No activity recorded yet. Rows appear the first time someone signs in.
         </p>
