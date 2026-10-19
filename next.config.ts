@@ -25,6 +25,12 @@ const CSP = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Next starts a build worker per CPU core by default. Shared hosts such as
+  // SiteGround cap processes and threads per account, so keep builds to one
+  // worker. This app has only a handful of pages, so builds stay quick.
+  experimental: {
+    cpus: 1,
+  },
   async headers() {
     return [
       {

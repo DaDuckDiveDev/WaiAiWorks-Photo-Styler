@@ -6,7 +6,8 @@ storybook. Photo fixes repair the shot where someone blinked or looked away,
 either as a real photo or in any of the looks.
 
 Built on the Kaiel Systems design system (Next.js 15, TypeScript, Tailwind,
-Kaiel Abyss dark UI). Runs on Render at **styler.kaielsystems.com**.
+Kaiel Abyss dark UI). Runs on any Node.js host: SiteGround Node.js Projects or
+Render (see Hosting below), at **styler.kaielsystems.com**.
 
 ## What's in the studio
 
@@ -89,9 +90,27 @@ render.yaml           Render service configuration
 legacy/               the original Flask app, kept for reference
 ```
 
-## Notes
+## Hosting
 
-Deployment, DNS, and the cutover steps are in [MIGRATION.md](./MIGRATION.md).
+**SiteGround** (GrowBig, GoGeek, or Cloud plans):
+
+1. Client Area → Websites → Node.js Projects → New Project → Import Git
+   repository, then pick this repo.
+2. Site Tools → Node.js → Deployment Options → Settings: framework preset
+   Next.js, Node 22, npm, build command `npm run build`, and the branch to
+   deploy. Each push to that branch redeploys.
+3. Environment variables: `REPLICATE_API_TOKEN` and `SESSION_SECRET`, plus
+   optional `DATABASE_URL` (a SiteGround PostgreSQL database works),
+   `DAILY_CREDITS`, `STYLER_ADMINS`, and the Resend variables.
+4. Assign the domain to the project.
+
+`next.config.ts` limits the build to one worker so it stays under
+SiteGround's per-account process limit.
+
+**Render**: deployment, DNS, and the cutover steps are in
+[MIGRATION.md](./MIGRATION.md).
+
+## Notes
 
 To exercise the studio without spending Replicate credits, set
 `REPLICATE_API_ROOT` to a local server that mimics Replicate's predictions API.
