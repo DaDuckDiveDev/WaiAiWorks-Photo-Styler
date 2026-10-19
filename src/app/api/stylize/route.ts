@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { getPreset } from "@/lib/styles";
+import { parseRecipe, recipeSlug } from "@/lib/catalog";
+import { buildPrompt } from "@/lib/prompts";
 import { stylizeImage } from "@/lib/replicate";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { claimCredit, recordEvent, refundCredit } from "@/lib/usage";
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { image?: string; style?: string };
+  let body: { image?: string; finish?: string; fix?: string | null; style?: string };
   try {
     body = await request.json();
   } catch {
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
   }
 
   const image = body.image ?? "";
-  const preset = getPreset(body.style ?? "");
+  // `style` is the field older clients send; it maps straight onto a finish.
+  const recipe = parseRecipe({ finish: body.finish ?? body.style, fix: body.fix });
 
   if (!image.startsWith("data:image/")) {
     return NextResponse.json({ error: "Unsupported image payload." }, { status: 400 });
@@ -49,8 +51,11 @@ export async function POST(request: Request) {
       { status: 413 }
     );
   }
-  if (!preset) {
-    return NextResponse.json({ error: "Unknown style." }, { status: 400 });
+  if (!recipe) {
+    return NextResponse.json(
+      { error: "Pick a look, or a photo fix with a finish." },
+      { status: 400 }
+    );
   }
 
   // Take the credit before spending money at Replicate, and hand it back if the
@@ -68,13 +73,14 @@ export async function POST(request: Request) {
 
   await recordEvent(user, "uploads");
 
+  const tag = recipeSlug(recipe);
   try {
-    const url = await stylizeImage(image, preset.prompt);
-    return NextResponse.json({ url, style: preset.id, credits: claim.remaining });
+    const url = await stylizeImage(image, buildPrompt(recipe), tag);
+    return NextResponse.json({ url, recipe, credits: claim.remaining });
   } catch (error) {
     await refundCredit(user);
     const message = error instanceof Error ? error.message : "Render failed.";
-    console.error(`[stylize] ${user} / ${preset.id}: ${message}`);
+    console.error(`[stylize] ${user} / ${tag}: ${message}`);
     return NextResponse.json(
       { error: message, credits: claim.remaining === null ? null : claim.remaining + 1 },
       { status: 502 }

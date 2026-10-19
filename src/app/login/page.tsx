@@ -3,8 +3,12 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, LockKeyhole } from "lucide-react";
 import { LogoMark } from "@/components/logo-mark";
+
+function safeNext(value: string | null): string {
+  // Only same-site paths; never bounce a fresh session to another origin.
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -25,45 +29,43 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const data = await response.json();
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        setError(data.error ?? "Sign-in failed.");
+        setError(data.error ?? "Sign-in failed. Try again.");
         setBusy(false);
         return;
       }
 
-      router.replace(params.get("next") ?? "/");
+      router.replace(safeNext(params.get("next")));
       router.refresh();
     } catch {
-      setError("Network trouble. Try again.");
+      setError("Couldn't reach the studio. Check your connection and try again.");
       setBusy(false);
     }
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="glass-card w-full max-w-md p-8 sm:p-10"
+      className="relative w-full max-w-[26rem]"
     >
-      <div className="relative z-[2]">
-        <LogoMark />
+      <div className="viewfinder absolute -inset-4 sm:-inset-6" aria-hidden="true" />
+      <div className="panel relative rounded-2xl p-7 shadow-lift sm:p-9">
+        <LogoMark draw />
 
-        <h1 className="font-display mt-8 text-3xl font-semibold leading-tight">
-          <span className="liquid-text">Sign in to the studio</span>
+        <h1 className="wide mt-10 text-[2rem] font-semibold leading-[1.08] tracking-[-0.01em]">
+          Sign in to the studio
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-pacific/70">
-          Upload your photos, pick a style, and get illustrated renders back in
-          about a minute.
+        <p className="mt-3 text-[0.9375rem] leading-relaxed text-haze">
+          Restyle group photos and fix closed eyes, usually in under a minute.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-pacific/60">
-              Username
-            </span>
+            <span className="text-sm font-medium text-haze">Username</span>
             <input
               type="text"
               value={username}
@@ -72,23 +74,19 @@ function LoginForm() {
               autoCapitalize="none"
               spellCheck={false}
               required
-              className="glass-input mt-2 w-full rounded-xl px-4 py-3 text-pacific outline-none transition placeholder:text-pacific/35 focus:ring-2 focus:ring-skyline/50"
-              placeholder="your-username"
+              className="field mt-1.5 w-full rounded-xl px-4 py-3"
             />
           </label>
 
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-pacific/60">
-              Password
-            </span>
+            <span className="text-sm font-medium text-haze">Password</span>
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
               required
-              className="glass-input mt-2 w-full rounded-xl px-4 py-3 text-pacific outline-none transition placeholder:text-pacific/35 focus:ring-2 focus:ring-skyline/50"
-              placeholder="••••••••"
+              className="field mt-1.5 w-full rounded-xl px-4 py-3"
             />
           </label>
 
@@ -104,20 +102,19 @@ function LoginForm() {
           <button
             type="submit"
             disabled={busy}
-            className="glass-btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary w-full px-5 py-3.5 text-[0.9375rem]"
           >
             {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LockKeyhole className="h-4 w-4" />
-            )}
-            {busy ? "Signing in" : "Enter the studio"}
+              <span
+                aria-hidden="true"
+                className="ring-spin h-4 w-4 rounded-full border-2 border-void/25 border-t-void"
+              />
+            ) : null}
+            {busy ? "Signing in" : "Sign in"}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-xs text-pacific/45">
-          A Kaiel Systems tool · access is issued per account
-        </p>
+        <p className="mt-8 text-xs text-dim">A Kaiel Systems tool.</p>
       </div>
     </motion.div>
   );
@@ -125,7 +122,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-16">
+    <main className="flex min-h-screen items-center justify-center px-6 py-16">
       <Suspense fallback={null}>
         <LoginForm />
       </Suspense>

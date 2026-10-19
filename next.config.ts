@@ -10,7 +10,8 @@ const CSP = [
   "object-src 'none'",
   "img-src 'self' data: blob: https://*.replicate.delivery",
   "connect-src 'self'",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  // Archivo is bundled with the app, so no third-party font host is needed.
+  "font-src 'self' data:",
   // Next injects an inline bootstrap script; Tailwind and framer-motion write
   // inline styles. Both need the 'unsafe-inline' escape hatch.
   "script-src 'self' 'unsafe-inline'" +

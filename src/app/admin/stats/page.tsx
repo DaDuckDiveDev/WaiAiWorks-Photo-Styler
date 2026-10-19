@@ -46,12 +46,12 @@ export default async function StatsPage() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-12 sm:py-16">
+    <main className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <LogoMark />
         <Link
           href="/"
-          className="glass-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
+          className="btn px-4 py-2.5 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to the studio
@@ -59,10 +59,8 @@ export default async function StatsPage() {
       </div>
 
       <div className="mt-10">
-        <h1 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
-          <span className="liquid-text">Usage</span>
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-pacific/70">
+        <h1 className="wide text-3xl font-semibold leading-tight sm:text-4xl">Usage</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-haze">
           Every account, with lifetime counters and today&rsquo;s remaining
           balance. Credits reset to {dailyCredits()} on each user&rsquo;s first
           request after midnight UTC.
@@ -70,12 +68,12 @@ export default async function StatsPage() {
       </div>
 
       {!trackingEnabled() ? (
-        <p className="glass-card mt-8 p-6 text-sm text-pacific/70">
-          Tracking is off — no <code className="text-skyline">DATABASE_URL</code>{" "}
+        <p className="panel mt-8 rounded-2xl p-6 text-sm text-haze">
+          Tracking is off — no <code className="text-reef">DATABASE_URL</code>{" "}
           is set on this environment, so nothing is being recorded.
         </p>
       ) : rows.length === 0 ? (
-        <p className="glass-card mt-8 p-6 text-sm text-pacific/70">
+        <p className="panel mt-8 rounded-2xl p-6 text-sm text-haze">
           No activity recorded yet. Rows appear the first time someone signs in.
         </p>
       ) : (
@@ -87,11 +85,11 @@ export default async function StatsPage() {
             <Stat label="Downloads" value={totals.downloads} />
           </div>
 
-          <div className="glass-card mt-6 overflow-hidden p-0">
+          <div className="panel mt-6 overflow-hidden rounded-2xl">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[46rem] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 text-xs uppercase tracking-[0.14em] text-pacific/55">
+                  <tr className="border-b border-rim text-xs text-haze">
                     <Th className="pl-6">User</Th>
                     <Th align="right">Uploads</Th>
                     <Th align="right">Renders</Th>
@@ -104,9 +102,9 @@ export default async function StatsPage() {
                   {rows.map((row) => (
                     <tr
                       key={row.username}
-                      className="border-b border-white/5 transition last:border-0 hover:bg-white/[0.04]"
+                      className="border-b border-rim transition last:border-0 hover:bg-trench"
                     >
-                      <td className="py-3.5 pl-6 pr-4 font-medium text-pacific">
+                      <td className="py-3.5 pl-6 pr-4 font-medium text-pearl">
                         {row.username}
                       </td>
                       <Td>{row.uploads}</Td>
@@ -115,13 +113,13 @@ export default async function StatsPage() {
                       <td className="px-4 py-3.5 text-right tabular-nums">
                         <span
                           className={
-                            row.credits <= 3 ? "font-semibold text-coral" : "text-pacific/80"
+                            row.credits <= 3 ? "font-semibold text-coral" : "text-pearl"
                           }
                         >
                           {row.credits}
                         </span>
                       </td>
-                      <td className="py-3.5 pl-4 pr-6 text-pacific/60">
+                      <td className="py-3.5 pl-4 pr-6 text-haze">
                         {formatDateTime(row.lastLogin)}
                       </td>
                     </tr>
@@ -134,7 +132,7 @@ export default async function StatsPage() {
           <div className="mt-6">
             <a
               href="/api/admin/usage.csv"
-              className="glass-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
+              className="btn px-4 py-2.5 text-sm"
             >
               <Download className="h-4 w-4" />
               Download CSV
@@ -148,11 +146,11 @@ export default async function StatsPage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="glass-card p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-pacific/55">
+    <div className="panel rounded-2xl p-5">
+      <p className="text-sm text-haze">
         {label}
       </p>
-      <p className="font-display mt-2 text-3xl font-semibold tabular-nums text-pacific">
+      <p className="wide mt-2 text-3xl font-semibold tabular-nums text-pearl">
         {value.toLocaleString()}
       </p>
     </div>
@@ -182,7 +180,7 @@ function Th({
 
 function Td({ children }: { children: React.ReactNode }) {
   return (
-    <td className="px-4 py-3.5 text-right tabular-nums text-pacific/80">
+    <td className="px-4 py-3.5 text-right tabular-nums text-pearl">
       {children}
     </td>
   );

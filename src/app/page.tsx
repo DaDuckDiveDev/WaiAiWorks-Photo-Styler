@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE, isAdmin, verifySession } from "@/lib/auth";
-import { getUsage } from "@/lib/usage";
+import { dailyCredits, getUsage } from "@/lib/usage";
 import { Studio } from "@/components/studio";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ export default async function StudioPage() {
     <Studio
       username={username}
       credits={usage?.credits ?? null}
+      allowance={dailyCredits()}
       admin={isAdmin(username)}
     />
   );
