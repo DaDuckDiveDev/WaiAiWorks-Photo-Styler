@@ -533,6 +533,35 @@
     background: #1d1a4a;
   }
 
+  /* Nightclub: a dark room, crossing light beams, a glowing neon tube. */
+  .swatch-nightclub {
+    background:
+      radial-gradient(ellipse 45% 60% at 14% 0%, rgba(56, 220, 255, 0.5), transparent 70%),
+      radial-gradient(ellipse 45% 60% at 86% 0%, rgba(255, 64, 190, 0.5), transparent 70%),
+      radial-gradient(ellipse 70% 45% at 50% 115%, rgba(140, 70, 255, 0.6), transparent 70%),
+      linear-gradient(180deg, #170a36 0%, #0a0520 100%);
+  }
+
+  .swatch-nightclub::before {
+    inset: 0;
+    background:
+      conic-gradient(from 150deg at 14% -8%, transparent 0deg, rgba(56, 220, 255, 0.3) 7deg, transparent 15deg),
+      conic-gradient(from 195deg at 86% -8%, transparent 0deg, rgba(255, 64, 190, 0.3) 7deg, transparent 15deg);
+  }
+
+  .swatch-nightclub::after {
+    left: 24%;
+    right: 24%;
+    top: 56%;
+    height: 3px;
+    border-radius: 3px;
+    background: #ffd6f3;
+    box-shadow:
+      0 0 3px #ff4fc8,
+      0 0 9px #ff4fc8,
+      0 0 16px rgba(255, 79, 200, 0.7);
+  }
+
   /* Photo finish: the untouched print. */
   .swatch-photo {
     background:

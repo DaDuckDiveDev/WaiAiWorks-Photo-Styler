@@ -42,8 +42,10 @@ export function RecipePicker({
           Look
         </h2>
         <div className="mt-3 grid grid-cols-2 gap-2.5">
-          {LOOKS.map((look) => {
+          {LOOKS.map((look, index) => {
             const selected = recipe.fix === null && recipe.finish === look.id;
+            // An odd one out at the end spans the row instead of sitting alone.
+            const wide = index === LOOKS.length - 1 && LOOKS.length % 2 === 1;
             return (
               <button
                 key={look.id}
@@ -51,6 +53,8 @@ export function RecipePicker({
                 aria-pressed={selected}
                 onClick={() => onRecipe({ finish: look.id, fix: null })}
                 className={`rounded-xl border p-1.5 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
+                  wide ? "col-span-2" : ""
+                } ${
                   selected
                     ? "border-reef bg-reef/[0.07] shadow-glow"
                     : "border-rim bg-trench/50 hover:border-rim-strong hover:bg-trench"

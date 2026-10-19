@@ -1,9 +1,9 @@
 # Kaiel Styler
 
 AI photo studio for event and portrait work. Upload up to five photos, pick a
-look, and get illustrated renders back — anime, 3D animated, comic, or
-storybook. Photo fixes repair the shot where someone blinked or looked away,
-either as a real photo or in any of the looks.
+look, and get illustrated renders back — anime, 3D animated, comic,
+storybook, or nightclub. Photo fixes repair the shot where someone blinked or
+looked away, either as a real photo or in any of the looks.
 
 Built on the Kaiel Systems design system (Next.js 15, TypeScript, Tailwind,
 Kaiel Abyss dark UI). Runs on any Node.js host: SiteGround Node.js Projects or
@@ -11,7 +11,8 @@ Render (see Hosting below), at **styler.kaielsystems.com**.
 
 ## What's in the studio
 
-- **Looks**: Anime, 3D Animated, Comic, Storybook.
+- **Looks**: Anime, 3D Animated, Comic, Storybook, and Nightclub (a 2D
+  animated-film frame with neon club lighting, written for event shoots).
 - **Photo fixes**: Open closed eyes, Look at the camera, and Open eyes + look
   at camera. Each fix expands into its finishes: **Photo** keeps it a real
   photograph and only changes the eyes; any look fixes the eyes and restyles
@@ -76,6 +77,12 @@ The older `{ image, style }` body is still accepted.
 
 - `src/lib/catalog.ts` — ids, labels, and validation. Shared with the browser.
 - `src/lib/prompts.ts` — the prompt text. Server-only, never shipped to clients.
+
+To add a look: add its id to `LookId` and `LOOKS` in `catalog.ts`, its prompt
+to `LOOK_PROMPTS` in `prompts.ts`, and a swatch class in
+`components/studio/bits.tsx` and `globals.css`. FLUX Kontext reads at most 512
+T5 tokens and fixes are appended to the end of the prompt, so keep a look's
+prompt under about 400 tokens or the fix gets cut off.
 
 To add a fix: add its id to `FixId` and `FIXES` in `catalog.ts`, write its
 `retouch` and `artwork` wording in `prompts.ts`, and give it an icon in

@@ -11,6 +11,7 @@ const SWATCH_CLASSES: Record<FinishId, string> = {
   pixar: "swatch-pixar",
   comic: "swatch-comic",
   disney: "swatch-disney",
+  nightclub: "swatch-nightclub",
 };
 
 /** A CSS-drawn preview of a finish, so each look reads before you pick it. */

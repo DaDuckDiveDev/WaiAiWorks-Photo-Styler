@@ -42,6 +42,30 @@ const LOOK_PROMPTS: Record<LookId, string> = {
     "Use soft glowing light, gentle watercolor-style shading, and flowing outlines. " +
     "Add a pastel palette and a romantic fantasy atmosphere. " +
     "Do not add new characters or distort the original ones.",
+  // Written for nightclub and event shoots: it keeps the venue and turns up the neon.
+  // Up to about 435 T5 tokens with a fix added; FLUX Kontext reads at most 512,
+  // and a fix is appended last, so keep any additions short.
+  nightclub:
+    "Transform this photograph into a beautiful, fully illustrated 2D animated cartoon with a charming, " +
+    "hand-drawn aesthetic inspired by classic Japanese animated films and modern premium cartoon illustrations. " +
+    "Art style: strongly cartoonish, NOT photorealistic or semi-realistic. " +
+    "Clean, expressive outlines with soft, smooth cel shading. " +
+    "Simplified facial features, slightly larger expressive eyes, charming animated smiles, and naturally stylized proportions. " +
+    "Smooth illustrated skin with warm, vibrant colors and absolutely no photographic skin texture. " +
+    "Beautifully drawn hair with simplified flowing shapes and carefully placed highlights. " +
+    "Rich, saturated colors, soft painterly shadows, and a polished animated-movie finish. " +
+    "Vibrant nightclub lighting with glowing neon accents, cinematic atmosphere, and illustrated background details. " +
+    `Preserve the original: ${PRESERVE_SUBJECTS} ` +
+    "Preserve recognizable facial features, skin tones, hairstyles, expressions, poses, and body types. " +
+    "Maintain the exact clothing, accessories, jewelry, and important logos. " +
+    "Keep the original camera angle, composition, and arrangement of people. " +
+    "Preserve the nightclub environment, furniture, lighting, and decorations. " +
+    "Important: make the entire image look like an actual frame from a professionally produced 2D animated movie, " +
+    "NOT a photograph with a cartoon filter applied. " +
+    "Avoid realistic skin, photographic textures, 3D rendering, hyperrealism, plastic-looking faces, " +
+    "exaggerated caricatures, distorted anatomy, or AI-generated facial inconsistencies. " +
+    "Final result: a vibrant, colorful, charming, completely hand-illustrated cartoon scene with consistent " +
+    "character designs, beautiful outlines, and an unmistakably animated appearance.",
 };
 
 /**
