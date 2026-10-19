@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { parseRecipe, recipeSlug } from "@/lib/catalog";
 import { buildPrompt } from "@/lib/prompts";
-import { stylizeImage } from "@/lib/replicate";
+import { RenderError, stylizeImage } from "@/lib/replicate";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { claimCredit, recordEvent, refundCredit } from "@/lib/usage";
+import { claimCredit, logRender, recordEvent, refundCredit } from "@/lib/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -77,12 +77,30 @@ export async function POST(request: Request) {
   await recordEvent(user, "uploads");
 
   const tag = recipeSlug(recipe);
+  const startedAt = Date.now();
   try {
-    const url = await stylizeImage(image, buildPrompt(recipe), tag);
+    const { url, predictionId } = await stylizeImage(image, buildPrompt(recipe), tag);
+    await logRender({
+      username: user,
+      finish: recipe.finish,
+      fix: recipe.fix,
+      status: "done",
+      seconds: (Date.now() - startedAt) / 1000,
+      predictionId,
+    });
     return NextResponse.json({ url, recipe, credits: claim.remaining });
   } catch (error) {
     await refundCredit(user);
     const message = error instanceof Error ? error.message : "Render failed.";
+    await logRender({
+      username: user,
+      finish: recipe.finish,
+      fix: recipe.fix,
+      status: "failed",
+      seconds: (Date.now() - startedAt) / 1000,
+      error: message,
+      predictionId: error instanceof RenderError ? error.predictionId : null,
+    });
     console.error(`[stylize] ${user} / ${tag}: ${message}`);
     return NextResponse.json(
       { error: message, credits: claim.remaining === null ? null : claim.remaining + 1 },

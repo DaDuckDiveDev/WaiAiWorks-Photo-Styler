@@ -33,8 +33,10 @@ Render (see Hosting below), at **styler.kaielsystems.com**.
 - Archivo (variable weight and width), self-hosted from `src/fonts` — builds
   never call Google Fonts
 - Replicate (`black-forest-labs/flux-kontext-pro`) for rendering
-- Postgres for usage counters and daily credits — optional; the app runs
-  unmetered without it
+- Postgres for usage counters, daily credits, and a render log (one row per
+  render: look, fix, result, time, Replicate ID; never photos or prompts),
+  shown on /admin/stats with CSV exports. Optional; without it the app runs
+  unmetered and records nothing. Tables are created on first use
 - Sessions are signed cookies, images never touch a disk
 
 ## Setup

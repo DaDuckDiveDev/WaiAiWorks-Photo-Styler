@@ -38,6 +38,17 @@ function firstUrl(output: Prediction["output"]): string | null {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** A failed render, carrying Replicate's prediction ID when there was one. */
+export class RenderError extends Error {
+  constructor(
+    message: string,
+    readonly predictionId: string | null = null
+  ) {
+    super(message);
+    this.name = "RenderError";
+  }
+}
+
 /**
  * Runs the model against a single image and returns the output image URL.
  * `image` may be a public URL or a data: URI. `tag` names the recipe in logs.
@@ -46,7 +57,7 @@ export async function stylizeImage(
   image: string,
   prompt: string,
   tag = "unknown"
-): Promise<string> {
+): Promise<{ url: string; predictionId: string }> {
   const requestedAt = Date.now();
   const response = await fetch(`${API_ROOT}/models/${MODEL}/predictions`, {
     method: "POST",
@@ -86,7 +97,7 @@ export async function stylizeImage(
       cache: "no-store",
     });
     if (!poll.ok) {
-      throw new Error(`Lost track of the render (${poll.status}).`);
+      throw new RenderError(`Lost track of the render (${poll.status}).`, prediction.id);
     }
     prediction = (await poll.json()) as Prediction;
   }
@@ -106,12 +117,15 @@ export async function stylizeImage(
   });
 
   if (prediction.status === "failed" || prediction.status === "canceled") {
-    throw new Error(prediction.error || "The render failed. Try a different photo or style.");
+    throw new RenderError(
+      prediction.error || "The render failed. Try a different photo or style.",
+      prediction.id
+    );
   }
 
   const url = firstUrl(prediction.output);
   if (!url) {
-    throw new Error("The render timed out before an image came back.");
+    throw new RenderError("The render timed out before an image came back.", prediction.id);
   }
-  return url;
+  return { url, predictionId: prediction.id };
 }

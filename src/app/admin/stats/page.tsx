@@ -4,7 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { SESSION_COOKIE, isAdmin, verifySession } from "@/lib/auth";
 import { LogoMark } from "@/components/logo-mark";
-import { dailyCredits, listUsage, trackingEnabled } from "@/lib/usage";
+import { parseRecipe, recipeLabel } from "@/lib/catalog";
+import {
+  dailyCredits,
+  listUsage,
+  recentRenders,
+  renderBreakdown,
+  trackingEnabled,
+  type RenderLogEntry,
+} from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +43,11 @@ export default async function StatsPage() {
   // 404 rather than 403 — a non-admin has no reason to learn this page exists.
   if (!isAdmin(username)) notFound();
 
-  const rows = await listUsage();
+  const [rows, breakdown, recent] = await Promise.all([
+    listUsage(),
+    renderBreakdown(30),
+    recentRenders(50),
+  ]);
   const totals = rows.reduce(
     (acc, row) => ({
       uploads: acc.uploads + row.uploads,
@@ -129,15 +141,18 @@ export default async function StatsPage() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <a
-              href="/api/admin/usage.csv"
-              className="btn px-4 py-2.5 text-sm"
-            >
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a href="/api/admin/usage.csv" className="btn px-4 py-2.5 text-sm">
               <Download className="h-4 w-4" />
-              Download CSV
+              Download usage CSV
+            </a>
+            <a href="/api/admin/renders.csv" className="btn px-4 py-2.5 text-sm">
+              <Download className="h-4 w-4" />
+              Download render log CSV
             </a>
           </div>
+
+          <RenderSections breakdown={breakdown} recent={recent} />
         </>
       )}
     </main>
@@ -183,5 +198,136 @@ function Td({ children }: { children: React.ReactNode }) {
     <td className="px-4 py-3.5 text-right tabular-nums text-pearl">
       {children}
     </td>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* render log                                                                  */
+/* -------------------------------------------------------------------------- */
+
+function labelFor(finish: string, fix: string | null): string {
+  const recipe = parseRecipe({ finish, fix });
+  return recipe ? recipeLabel(recipe) : fix ? `${finish}, ${fix}` : finish;
+}
+
+function RenderSections({
+  breakdown,
+  recent,
+}: {
+  breakdown: Awaited<ReturnType<typeof renderBreakdown>>;
+  recent: RenderLogEntry[];
+}) {
+  const done = breakdown.reduce((sum, row) => sum + row.done, 0);
+  const failed = breakdown.reduce((sum, row) => sum + row.failed, 0);
+
+  return (
+    <>
+      <section className="mt-14" aria-labelledby="looks-heading">
+        <h2 id="looks-heading" className="wide text-xl font-semibold">
+          Renders in the last 30 days
+        </h2>
+        <p className="mt-2 text-sm text-haze">
+          {done.toLocaleString()} finished, {failed.toLocaleString()} failed. Failed renders
+          don&rsquo;t use a credit.
+        </p>
+        {breakdown.length === 0 ? (
+          <p className="panel mt-5 rounded-2xl p-6 text-sm text-haze">
+            No renders logged yet. Each render shows up here as soon as it finishes.
+          </p>
+        ) : (
+          <div className="panel mt-5 overflow-hidden rounded-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-rim text-xs text-haze">
+                    <Th className="pl-6">Look and fix</Th>
+                    <Th align="right">Finished</Th>
+                    <Th align="right">Failed</Th>
+                    <Th align="right" className="pr-6">
+                      Average time
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {breakdown.map((row) => (
+                    <tr key={`${row.finish}-${row.fix ?? ""}`} className="border-b border-rim last:border-0">
+                      <td className="py-3.5 pl-6 pr-4 font-medium text-pearl">
+                        {labelFor(row.finish, row.fix)}
+                      </td>
+                      <Td>{row.done}</Td>
+                      <td className="px-4 py-3.5 text-right tabular-nums">
+                        <span className={row.failed ? "text-coral" : "text-pearl"}>{row.failed}</span>
+                      </td>
+                      <td className="py-3.5 pl-4 pr-6 text-right tabular-nums text-haze">
+                        {row.avgSeconds === null ? "—" : `${row.avgSeconds}s`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-14" aria-labelledby="recent-heading">
+        <h2 id="recent-heading" className="wide text-xl font-semibold">
+          Latest renders
+        </h2>
+        <p className="mt-2 text-sm text-haze">
+          The last {recent.length} attempts, newest first. The Replicate ID finds a render
+          in your Replicate dashboard.
+        </p>
+        {recent.length === 0 ? null : (
+          <div className="panel mt-5 overflow-hidden rounded-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[52rem] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-rim text-xs text-haze">
+                    <Th className="pl-6">When</Th>
+                    <Th>Look and fix</Th>
+                    <Th>Result</Th>
+                    <Th align="right">Time</Th>
+                    <Th className="pr-6">Replicate ID</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map((entry) => (
+                    <tr key={entry.id} className="border-b border-rim align-top last:border-0">
+                      <td className="whitespace-nowrap py-3.5 pl-6 pr-4 text-haze">
+                        {formatDateTime(entry.createdAt)}
+                      </td>
+                      <td className="px-4 py-3.5 font-medium text-pearl">
+                        {labelFor(entry.finish, entry.fix)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {entry.status === "done" ? (
+                          <span className="text-seaglass">Finished</span>
+                        ) : (
+                          <span className="text-coral">
+                            Failed
+                            {entry.error ? (
+                              <span className="mt-0.5 block max-w-xs text-xs text-haze">
+                                {entry.error}
+                              </span>
+                            ) : null}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-haze">
+                        {entry.seconds === null ? "—" : `${entry.seconds}s`}
+                      </td>
+                      <td className="py-3.5 pl-4 pr-6 font-mono text-xs text-dim">
+                        {entry.predictionId ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+    </>
   );
 }

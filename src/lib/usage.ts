@@ -68,6 +68,9 @@ function getPool(): Pool {
   return globalForPg.__kaielStylerPool;
 }
 
+// Both tables are created on first use, so a fresh empty database just works.
+// render_log keeps one row per render attempt: what was asked for and how it
+// went. Photos, prompts, and output links are never stored.
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS user_tracking (
     username            VARCHAR(50) PRIMARY KEY,
@@ -78,6 +81,18 @@ const SCHEMA = `
     last_credit_refresh DATE,
     last_login          TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS render_log (
+    id            BIGSERIAL PRIMARY KEY,
+    username      VARCHAR(50) NOT NULL,
+    finish        VARCHAR(16) NOT NULL,
+    fix           VARCHAR(24),
+    status        VARCHAR(8)  NOT NULL,
+    seconds       NUMERIC(7, 1),
+    error         VARCHAR(300),
+    prediction_id VARCHAR(64),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS render_log_created_at ON render_log (created_at DESC);
 `;
 
 function ensureSchema(): Promise<void> {
@@ -251,6 +266,150 @@ export async function listUsage(): Promise<Usage[]> {
     return rows.map(toUsage);
   } catch (error) {
     console.error("[usage] listUsage failed:", (error as Error).message);
+    return [];
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* render log                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export type RenderLogEntry = {
+  id: number;
+  username: string;
+  finish: string;
+  fix: string | null;
+  status: "done" | "failed";
+  seconds: number | null;
+  error: string | null;
+  predictionId: string | null;
+  createdAt: string;
+};
+
+type RenderRow = {
+  id: string | number;
+  username: string;
+  finish: string;
+  fix: string | null;
+  status: string;
+  seconds: string | number | null;
+  error: string | null;
+  prediction_id: string | null;
+  created_at: Date | string;
+};
+
+function toEntry(row: RenderRow): RenderLogEntry {
+  return {
+    id: Number(row.id),
+    username: row.username,
+    finish: row.finish,
+    fix: row.fix,
+    status: row.status === "done" ? "done" : "failed",
+    seconds: row.seconds === null ? null : Number(row.seconds),
+    error: row.error,
+    predictionId: row.prediction_id,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+  };
+}
+
+/** Records one render attempt. Fails open like everything else here. */
+export async function logRender(entry: {
+  username: string;
+  finish: string;
+  fix: string | null;
+  status: "done" | "failed";
+  seconds: number;
+  error?: string | null;
+  predictionId?: string | null;
+}): Promise<void> {
+  if (!trackingEnabled()) return;
+  try {
+    await query(
+      `INSERT INTO render_log (username, finish, fix, status, seconds, error, prediction_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        entry.username,
+        entry.finish,
+        entry.fix,
+        entry.status,
+        Math.round(entry.seconds * 10) / 10,
+        entry.error ? entry.error.slice(0, 300) : null,
+        entry.predictionId ?? null,
+      ]
+    );
+  } catch (error) {
+    console.error("[usage] logRender failed:", (error as Error).message);
+  }
+}
+
+/** The most recent render attempts, newest first. */
+export async function recentRenders(limit = 50): Promise<RenderLogEntry[]> {
+  if (!trackingEnabled()) return [];
+  try {
+    const rows = await query<RenderRow>(
+      "SELECT * FROM render_log ORDER BY created_at DESC LIMIT $1",
+      [limit]
+    );
+    return rows.map(toEntry);
+  } catch (error) {
+    console.error("[usage] recentRenders failed:", (error as Error).message);
+    return [];
+  }
+}
+
+/** Every render attempt since a date, oldest first, for the CSV export. */
+export async function rendersSince(since: Date): Promise<RenderLogEntry[]> {
+  if (!trackingEnabled()) return [];
+  try {
+    const rows = await query<RenderRow>(
+      "SELECT * FROM render_log WHERE created_at >= $1 ORDER BY created_at ASC",
+      [since.toISOString()]
+    );
+    return rows.map(toEntry);
+  } catch (error) {
+    console.error("[usage] rendersSince failed:", (error as Error).message);
+    return [];
+  }
+}
+
+export type RenderBreakdown = {
+  finish: string;
+  fix: string | null;
+  done: number;
+  failed: number;
+  avgSeconds: number | null;
+};
+
+/** Counts per look and fix over the last `days` days, busiest first. */
+export async function renderBreakdown(days = 30): Promise<RenderBreakdown[]> {
+  if (!trackingEnabled()) return [];
+  try {
+    const rows = await query<{
+      finish: string;
+      fix: string | null;
+      done: string;
+      failed: string;
+      avg_seconds: string | null;
+    }>(
+      `SELECT finish, fix,
+              COUNT(*) FILTER (WHERE status = 'done')   AS done,
+              COUNT(*) FILTER (WHERE status <> 'done')  AS failed,
+              AVG(seconds) FILTER (WHERE status = 'done') AS avg_seconds
+       FROM render_log
+       WHERE created_at >= NOW() - ($1 || ' days')::interval
+       GROUP BY finish, fix
+       ORDER BY COUNT(*) DESC`,
+      [String(days)]
+    );
+    return rows.map((row) => ({
+      finish: row.finish,
+      fix: row.fix,
+      done: Number(row.done),
+      failed: Number(row.failed),
+      avgSeconds: row.avg_seconds === null ? null : Math.round(Number(row.avg_seconds) * 10) / 10,
+    }));
+  } catch (error) {
+    console.error("[usage] renderBreakdown failed:", (error as Error).message);
     return [];
   }
 }
