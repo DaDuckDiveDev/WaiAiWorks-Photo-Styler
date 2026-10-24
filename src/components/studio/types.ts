@@ -1,5 +1,5 @@
 import type { Recipe } from "@/lib/catalog";
-import { recipeSlug } from "@/lib/catalog";
+import { recipeSlug, sameRecipe } from "@/lib/catalog";
 import type { PreparedImage } from "@/lib/image";
 
 export type VersionStatus = "queued" | "working" | "done" | "error";
@@ -40,6 +40,49 @@ export function shotStatus(shot: Shot): VersionStatus | "idle" {
   if (shot.versions.some((version) => version.status === "working")) return "working";
   if (shot.versions.some((version) => version.status === "queued")) return "queued";
   return activeVersion(shot)?.status ?? "idle";
+}
+
+/** True if this photo already has, or is getting, a render with this recipe. */
+export function hasRecipe(shot: Shot, recipe: Recipe): boolean {
+  return shot.versions.some(
+    (version) => version.status !== "error" && sameRecipe(version.recipe, recipe)
+  );
+}
+
+/** What the render button will do right now, so its label never surprises anyone. */
+export type RenderPlan = {
+  targets: Shot[];
+  /** Photos in the strip. */
+  total: number;
+  /** Rendering just the selected photo. */
+  single: boolean;
+  /** Photos left out of "All" because they already have this look. */
+  skipped: number;
+  /** Everything in scope already has this look, so this renders it again. */
+  again: boolean;
+};
+
+/**
+ * "All" means every photo that doesn't have this look yet. Adding a new photo
+ * to a strip that's already rendered then renders just the new one, instead of
+ * paying again for photos that are done. If every photo already has the look,
+ * "All" renders them all again, and the button says so.
+ */
+export function planRender(
+  shots: Shot[],
+  selected: Shot | null,
+  scope: Scope,
+  recipe: Recipe
+): RenderPlan {
+  const total = shots.length;
+  if (!total) return { targets: [], total, single: true, skipped: 0, again: false };
+  if (scope === "one" || total === 1) {
+    const target = selected ?? shots[0];
+    return { targets: [target], total, single: true, skipped: 0, again: hasRecipe(target, recipe) };
+  }
+  const fresh = shots.filter((shot) => !hasRecipe(shot, recipe));
+  if (!fresh.length) return { targets: shots, total, single: false, skipped: 0, again: true };
+  return { targets: fresh, total, single: false, skipped: total - fresh.length, again: false };
 }
 
 export function newId(): string {

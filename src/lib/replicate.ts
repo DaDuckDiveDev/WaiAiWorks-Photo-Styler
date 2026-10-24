@@ -11,6 +11,14 @@ const MODEL = "black-forest-labs/flux-kontext-pro";
 const API_ROOT = process.env.REPLICATE_API_ROOT || "https://api.replicate.com/v1";
 const POLL_INTERVAL_MS = 1500;
 const POLL_BUDGET_MS = 180_000;
+/*
+ * Replicate throttles how fast predictions can be created; with under $5 of
+ * account credit the limit drops to 6 a minute with a burst of 1, so a batch
+ * that starts its next photo right away gets a 429. A 429 means nothing was
+ * created and nothing was charged, so it's safe to wait as told and ask again.
+ */
+const THROTTLE_RETRIES = 5;
+const THROTTLE_BUDGET_MS = 40_000;
 
 type Prediction = {
   id: string;
@@ -38,14 +46,90 @@ function firstUrl(output: Prediction["output"]): string | null {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A failed render, carrying Replicate's prediction ID when there was one. */
+/**
+ * A failed render. `message` is written for the person using the studio;
+ * `detail` keeps Replicate's own wording for the render log.
+ */
 export class RenderError extends Error {
   constructor(
     message: string,
-    readonly predictionId: string | null = null
+    readonly predictionId: string | null = null,
+    readonly detail: string | null = null
   ) {
     super(message);
     this.name = "RenderError";
+  }
+}
+
+/** How long Replicate asked us to wait, from the header or the JSON body. */
+function retryAfterMs(response: Response, body: string, attempt: number): number {
+  let seconds = Number(response.headers.get("retry-after"));
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    try {
+      seconds = Number((JSON.parse(body) as { retry_after?: unknown }).retry_after);
+    } catch {
+      seconds = Number.NaN;
+    }
+  }
+  if (!Number.isFinite(seconds) || seconds <= 0) seconds = 2 ** attempt;
+  // A little jitter so two people rendering at once don't collide again.
+  return Math.min(15_000, seconds * 1000) + Math.floor(Math.random() * 750);
+}
+
+/** Replicate's error text without the JSON wrapping, for logs. */
+function rejectionDetail(body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { detail?: unknown; title?: unknown };
+    if (typeof parsed.detail === "string") return parsed.detail.slice(0, 300);
+    if (typeof parsed.title === "string") return parsed.title.slice(0, 300);
+  } catch {
+    // Not JSON; use it as is.
+  }
+  return body.slice(0, 300);
+}
+
+/** What to tell the person in the studio when Replicate says no. */
+function rejectionMessage(status: number): string {
+  if (status === 429) {
+    return "Replicate is limiting how fast renders can start right now. Wait a minute, then try again.";
+  }
+  if (status === 402) {
+    return "The Replicate account is out of credit, so renders are paused until it's topped up.";
+  }
+  if (status === 401 || status === 403) {
+    return "The studio couldn't sign in to Replicate. The API token needs checking.";
+  }
+  if (status >= 500) return "Replicate is having trouble right now. Try again in a minute.";
+  return `Replicate couldn't take this photo (${status}). Try again, or try a different photo.`;
+}
+
+/** Starts a prediction, waiting out Replicate's rate limit if it pushes back. */
+async function createPrediction(input: Record<string, unknown>, tag: string): Promise<Prediction> {
+  const startedAt = Date.now();
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(`${API_ROOT}/models/${MODEL}/predictions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token()}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({ input }),
+    });
+    if (response.ok) return (await response.json()) as Prediction;
+
+    const body = await response.text();
+    if (response.status === 429 && attempt <= THROTTLE_RETRIES) {
+      const waitMs = retryAfterMs(response, body, attempt);
+      if (Date.now() - startedAt + waitMs <= THROTTLE_BUDGET_MS) {
+        console.warn("[replicate] throttled, waiting to retry", { recipe: tag, attempt, waitMs });
+        await sleep(waitMs);
+        continue;
+      }
+    }
+    const detail = rejectionDetail(body);
+    console.error("[replicate] rejected", { recipe: tag, status: response.status, detail });
+    throw new RenderError(rejectionMessage(response.status), null, `Replicate ${response.status}: ${detail}`);
   }
 }
 
@@ -59,30 +143,16 @@ export async function stylizeImage(
   tag = "unknown"
 ): Promise<{ url: string; predictionId: string }> {
   const requestedAt = Date.now();
-  const response = await fetch(`${API_ROOT}/models/${MODEL}/predictions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token()}`,
-      "Content-Type": "application/json",
-      Prefer: "wait=60",
+  let prediction = await createPrediction(
+    {
+      prompt,
+      input_image: image,
+      aspect_ratio: "match_input_image",
+      output_format: "jpg",
+      safety_tolerance: 2,
     },
-    body: JSON.stringify({
-      input: {
-        prompt,
-        input_image: image,
-        aspect_ratio: "match_input_image",
-        output_format: "jpg",
-        safety_tolerance: 2,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Replicate rejected the request (${response.status}): ${detail.slice(0, 300)}`);
-  }
-
-  let prediction = (await response.json()) as Prediction;
+    tag
+  );
   console.info("[replicate] accepted", { predictionId: prediction.id, model: MODEL, recipe: tag });
   const deadline = Date.now() + POLL_BUDGET_MS;
 

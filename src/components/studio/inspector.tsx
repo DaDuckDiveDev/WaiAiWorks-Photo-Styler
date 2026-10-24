@@ -12,7 +12,7 @@ import {
   type Recipe,
 } from "@/lib/catalog";
 import { Elapsed, Spinner, Swatch } from "./bits";
-import type { Batch, Scope } from "./types";
+import type { Batch, RenderPlan, Scope } from "./types";
 
 const FIX_ICONS: Record<FixId, LucideIcon> = {
   "open-eyes": Eye,
@@ -223,9 +223,24 @@ export function RecipeSummary({
   );
 }
 
-export function renderButtonLabel(count: number, scope: Scope, total: number): string {
-  if (total <= 1 || scope === "one") return "Render this photo";
+export function renderButtonLabel(plan: RenderPlan): string {
+  const count = plan.targets.length;
+  if (plan.single) return plan.again ? "Render this photo again" : "Render this photo";
+  if (plan.again) return `Render all ${count} again`;
+  if (plan.skipped) return `Render ${count} ${count === 1 ? "photo" : "photos"}`;
   return `Render all ${count} photos`;
+}
+
+/** Says which photos "All" leaves out, or that it's about to redo them. */
+export function planNote(plan: RenderPlan): string | null {
+  if (plan.single) return null;
+  if (plan.skipped) {
+    return plan.skipped === 1
+      ? "Skips 1 photo that already has this look."
+      : `Skips ${plan.skipped} photos that already have this look.`;
+  }
+  if (plan.again) return "Every photo already has this look, so this renders them again.";
+  return null;
 }
 
 export function costLine(count: number, credits: number | null): string | null {
@@ -238,7 +253,7 @@ export function costLine(count: number, credits: number | null): string | null {
 }
 
 export function RenderControls({
-  total,
+  plan,
   scope,
   onScope,
   recipe,
@@ -248,7 +263,7 @@ export function RenderControls({
   onRender,
   onStop,
 }: {
-  total: number;
+  plan: RenderPlan;
   scope: Scope;
   onScope: (scope: Scope) => void;
   recipe: Recipe;
@@ -258,7 +273,9 @@ export function RenderControls({
   onRender: () => void | Promise<void>;
   onStop: () => void;
 }) {
-  const count = scope === "one" || total <= 1 ? Math.min(total, 1) : total;
+  const total = plan.total;
+  const count = plan.targets.length;
+  const note = planNote(plan);
   const outOfCredits = credits !== null && credits <= 0;
 
   if (batch) return <BatchProgress batch={batch} onStop={onStop} />;
@@ -293,14 +310,17 @@ export function RenderControls({
         onClick={() => void onRender()}
         className="btn-primary w-full px-5 py-3.5 text-[0.9375rem]"
       >
-        {total === 0 ? "Add photos" : renderButtonLabel(count, scope, total)}
+        {total === 0 ? "Add photos" : renderButtonLabel(plan)}
         {total > 0 ? <span className="kbd hidden lg:inline-flex">{modKey} ↵</span> : null}
       </button>
 
       {total > 0 ? (
-        <p className={`text-xs leading-relaxed ${outOfCredits ? "text-coral" : "text-dim"}`}>
-          {costLine(count, credits) ?? "Renders run one photo at a time."}
-        </p>
+        <div className="space-y-1 text-xs leading-relaxed">
+          {note ? <p className="text-haze">{note}</p> : null}
+          <p className={outOfCredits ? "text-coral" : "text-dim"}>
+            {costLine(count, credits) ?? "Renders run one photo at a time."}
+          </p>
+        </div>
       ) : null}
     </div>
   );

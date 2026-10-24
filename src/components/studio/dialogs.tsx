@@ -25,7 +25,8 @@ export function HelpModal({
           Add up to five photos, pick a look or a photo fix on the right, and
           render. Photos render one at a time. Every render is saved on its photo
           as a version, so you can try several looks on the same shot and switch
-          between them.
+          between them. Rendering all photos skips any photo that already has
+          the chosen look, so adding a new photo renders just the new one.
         </HelpBlock>
 
         <HelpBlock title="Photo fixes">

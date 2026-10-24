@@ -16,13 +16,15 @@ import { prepareImage } from "@/lib/image";
 import { Elapsed, Spinner, useModKey } from "./bits";
 import { HelpModal, SupportModal, type SupportRequest } from "./dialogs";
 import { Filmstrip, VersionBar } from "./filmstrip";
-import { RecipePicker, RecipeSummary, RenderControls } from "./inspector";
+import { RecipePicker, RecipeSummary, RenderControls, planNote } from "./inspector";
 import {
   activeVersion,
   downloadHref,
   downloadName,
   newId,
+  planRender,
   type Batch,
+  type RenderPlan,
   type Scope,
   type Shot,
   type Version,
@@ -116,6 +118,10 @@ export function Studio({
   const selectedIndex = shots.findIndex((shot) => shot.id === selectedId);
   const selected = selectedIndex >= 0 ? shots[selectedIndex] : null;
   const selectedVersion = activeVersion(selected);
+  const plan = useMemo(
+    () => planRender(shots, selected, scope, recipe),
+    [shots, selected, scope, recipe]
+  );
   const finished = useMemo(
     () =>
       shots.flatMap((shot, index) =>
@@ -411,11 +417,11 @@ export function Studio({
       chooseFiles();
       return;
     }
-    const targets = scope === "one" || shots.length === 1 ? (selected ? [selected] : []) : shots;
+    const targets = plan.targets;
     const chosen = recipe;
     if (!(await hasCredit())) return;
     void runBatch(targets, chosen);
-  }, [chooseFiles, hasCredit, recipe, runBatch, scope, selected, shots]);
+  }, [chooseFiles, hasCredit, plan, recipe, runBatch, shots.length]);
 
   function stopBatch() {
     stopRef.current = true;
@@ -541,7 +547,7 @@ export function Studio({
   };
 
   const renderProps = {
-    total: shots.length,
+    plan,
     scope,
     onScope: setScope,
     recipe,
@@ -764,7 +770,7 @@ function CreditMeter({ credits, allowance }: { credits: number; allowance: numbe
 }
 
 function MobileRenderBar({
-  total,
+  plan,
   scope,
   onScope,
   recipe,
@@ -773,7 +779,7 @@ function MobileRenderBar({
   onRender,
   onStop,
 }: {
-  total: number;
+  plan: RenderPlan;
   scope: Scope;
   onScope: (scope: Scope) => void;
   recipe: Recipe;
@@ -782,8 +788,20 @@ function MobileRenderBar({
   onRender: () => void;
   onStop: () => void;
 }) {
-  const count = scope === "one" || total <= 1 ? Math.min(total, 1) : total;
+  const total = plan.total;
+  const count = plan.targets.length;
+  const note = planNote(plan);
   const outOfCredits = credits !== null && credits <= 0;
+  const label =
+    total === 0
+      ? "Add photos"
+      : plan.single
+        ? plan.again
+          ? "Render again"
+          : "Render"
+        : plan.again
+          ? `Render ${count} again`
+          : `Render ${count}`;
 
   return (
     <div
@@ -839,6 +857,7 @@ function MobileRenderBar({
               ) : null}
             </div>
           ) : null}
+          {note ? <p className="-mt-1.5 mb-2.5 text-xs text-haze">{note}</p> : null}
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <RecipeSummary recipe={recipe} />
@@ -848,7 +867,7 @@ function MobileRenderBar({
               onClick={onRender}
               className="btn-primary shrink-0 px-5 py-3 text-sm"
             >
-              {total === 0 ? "Add photos" : count > 1 ? `Render ${count}` : "Render"}
+              {label}
             </button>
           </div>
         </>

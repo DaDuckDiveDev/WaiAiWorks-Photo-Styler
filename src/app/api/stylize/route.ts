@@ -92,16 +92,18 @@ export async function POST(request: Request) {
   } catch (error) {
     await refundCredit(user);
     const message = error instanceof Error ? error.message : "Render failed.";
+    // The log keeps Replicate's own wording; the studio gets the plain version.
+    const detail = error instanceof RenderError && error.detail ? error.detail : message;
     await logRender({
       username: user,
       finish: recipe.finish,
       fix: recipe.fix,
       status: "failed",
       seconds: (Date.now() - startedAt) / 1000,
-      error: message,
+      error: detail,
       predictionId: error instanceof RenderError ? error.predictionId : null,
     });
-    console.error(`[stylize] ${user} / ${tag}: ${message}`);
+    console.error(`[stylize] ${user} / ${tag}: ${detail}`);
     return NextResponse.json(
       { error: message, credits: claim.remaining === null ? null : claim.remaining + 1 },
       { status: 502 }
