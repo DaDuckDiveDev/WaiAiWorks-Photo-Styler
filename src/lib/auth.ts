@@ -11,7 +11,10 @@
  */
 
 export const SESSION_COOKIE = "kaiel_styler_session";
-export const SESSION_MAX_AGE = 60 * 60 * 12; // 12 hours
+// A week, so a sign-in in the morning still works at the end of a long event.
+// (The old app's cookie lasted until the browser closed, which on a phone is
+// effectively forever.)
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
 type SessionPayload = { u: string; exp: number };
 

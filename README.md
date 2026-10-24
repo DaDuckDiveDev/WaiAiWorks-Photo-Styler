@@ -91,6 +91,33 @@ To add a fix: add its id to `FixId` and `FIXES` in `catalog.ts`, write its
 `components/studio/inspector.tsx`. Every finish works with it automatically.
 
 Each render uses one credit, fixes included, and a failed render refunds it.
+The allowance resets at midnight Chicago time (`NEXT_PUBLIC_CREDIT_TIMEZONE`),
+as in the old app.
+
+## How a render runs
+
+No request stays open while the model works, so a phone that locks mid-render
+or a hosting proxy that cuts long requests can't lose a result:
+
+1. `POST /api/stylize` takes a credit, starts the prediction on Replicate
+   (waiting up to 10 s in case it finishes straight away), logs it as
+   `started`, and answers with the image or with a signed ticket.
+2. The browser polls `GET /api/stylize?ticket=…` every 2 s. The ticket is an
+   HMAC-signed note of the prediction, account and recipe, so the server keeps
+   no job table. After 6 minutes the browser sends `giveup=1`: the prediction
+   is cancelled and the credit returned.
+3. When the prediction finishes, the server copies the image into a data: URI
+   (Replicate deletes API outputs after an hour; the Flask app kept copies on
+   disk for the same reason), marks the log row `done` or `failed`, and
+   refunds a failure. Settling happens once per prediction even if polls race
+   or the server restarts: the `started` row in `render_log` is the guard.
+
+If Replicate throttles the create call (accounts under $5 of credit get 6 a
+minute, burst 1), the server waits the `retry_after` it's given and tries
+again; a 429 creates nothing and costs nothing. If Replicate refuses outright
+(no credit, bad token), the studio stops the batch instead of failing every
+photo the same way. A render that was started but never collected (the page
+was closed) shows as "Not collected" on the Usage page.
 
 ## Layout
 
@@ -117,7 +144,8 @@ legacy/               the original Flask app, kept for reference
    deploy. Each push to that branch redeploys.
 3. Environment variables: `REPLICATE_API_TOKEN` and `SESSION_SECRET`, plus
    optional `DATABASE_URL` (a SiteGround PostgreSQL database works),
-   `DAILY_CREDITS`, `STYLER_ADMINS`, and the Resend variables.
+   `DAILY_CREDITS`, `NEXT_PUBLIC_CREDIT_TIMEZONE`, `STYLER_ADMINS`, and the
+   Resend variables.
 4. Assign the domain to the project.
 
 `next.config.ts` limits the build to one worker so it stays under

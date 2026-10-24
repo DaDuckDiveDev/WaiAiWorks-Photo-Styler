@@ -11,6 +11,7 @@ import {
   type FixId,
   type Recipe,
 } from "@/lib/catalog";
+import { RESET_LABEL } from "@/lib/credit-clock";
 import { Elapsed, Spinner, Swatch } from "./bits";
 import type { Batch, RenderPlan, Scope } from "./types";
 
@@ -245,7 +246,7 @@ export function planNote(plan: RenderPlan): string | null {
 
 export function costLine(count: number, credits: number | null): string | null {
   if (credits === null) return null;
-  if (credits <= 0) return "No renders left today. They reset at midnight UTC.";
+  if (credits <= 0) return `No renders left today. They reset at ${RESET_LABEL}.`;
   if (credits < count) {
     return `${credits} ${credits === 1 ? "render" : "renders"} left today, so this batch stops early.`;
   }

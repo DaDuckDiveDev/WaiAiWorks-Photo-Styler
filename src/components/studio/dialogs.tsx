@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Modal } from "@/components/modal";
+import { RESET_LABEL } from "@/lib/credit-clock";
 import { Spinner } from "./bits";
 
 export type SupportRequest = { kind: "support" | "report"; draft: string };
@@ -39,15 +40,15 @@ export function HelpModal({
 
         <HelpBlock title="Compare and download">
           Drag the divider on a finished render to compare it with the original,
-          or switch to Render to show it full size. Renders are kept for about an
-          hour, so download the ones you want before closing the tab.
+          or switch to Render to show it full size. Renders stay in the studio
+          until you close or reload the page, so download the ones you want to keep.
         </HelpBlock>
 
         {metered ? (
           <HelpBlock title="Daily renders">
             The account has a fixed number of renders per day, shown at the top.
             Every render uses one, fixes included. A render that fails gives its
-            credit straight back. The count resets at midnight UTC.
+            credit straight back. The count resets at {RESET_LABEL}.
           </HelpBlock>
         ) : null}
 

@@ -42,16 +42,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "That host isn't allowed." }, { status: 400 });
   }
 
-  const upstream = await fetch(target, { cache: "no-store" });
-  if (!upstream.ok || !upstream.body) {
-    return NextResponse.json({ error: "Could not fetch that image." }, { status: 502 });
+  let upstream: Response;
+  try {
+    upstream = await fetch(target, {
+      cache: "no-store",
+      // Never follow a redirect off Replicate's hosts.
+      redirect: "error",
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "That render is no longer available. Render the photo again." },
+      { status: 502 }
+    );
+  }
+  const type = upstream.headers.get("content-type") ?? "";
+  if (!upstream.ok || !upstream.body || !type.startsWith("image/")) {
+    return NextResponse.json(
+      { error: "That render is no longer available. Render the photo again." },
+      { status: 502 }
+    );
   }
 
   await recordEvent(user, "downloads");
 
   return new NextResponse(upstream.body, {
     headers: {
-      "Content-Type": upstream.headers.get("content-type") ?? "image/jpeg",
+      "Content-Type": type.split(";")[0],
       "Content-Disposition": `attachment; filename="${name}"`,
       "Cache-Control": "no-store",
     },

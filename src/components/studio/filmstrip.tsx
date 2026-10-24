@@ -1,20 +1,12 @@
 "use client";
 
-import {
-  AlertCircle,
-  Check,
-  Clock3,
-  Download,
-  Flag,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { AlertCircle, Check, Clock3, Download, Flag, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { recipeLabel } from "@/lib/catalog";
 import { Spinner } from "./bits";
 import {
   activeVersion,
   downloadHref,
+  noteDownloads,
   downloadName,
   shotStatus,
   type Shot,
@@ -40,6 +32,7 @@ export function VersionBar({
   viewMode,
   onViewMode,
   onPickVersion,
+  onDownloaded,
   onReport,
 }: {
   shot: Shot;
@@ -48,6 +41,7 @@ export function VersionBar({
   viewMode: ViewMode;
   onViewMode: (mode: ViewMode) => void;
   onPickVersion: (versionId: string) => void;
+  onDownloaded: (versionIds: string[]) => void;
   onReport: (version: Version) => void;
 }) {
   const active = activeVersion(shot);
@@ -106,6 +100,10 @@ export function VersionBar({
           <a
             href={downloadHref(finished.url as string, downloadName(shotIndex, finished))}
             download={downloadName(shotIndex, finished)}
+            onClick={() => {
+              noteDownloads([finished.url]);
+              onDownloaded([finished.id]);
+            }}
             className="btn px-3 py-[0.4375rem] text-xs"
           >
             <Download className="h-3.5 w-3.5" />
@@ -139,6 +137,7 @@ export function Filmstrip({
   onSelect,
   onRemove,
   onAdd,
+  onNewBatch,
   onDownloadAll,
   onClear,
 }: {
@@ -151,6 +150,8 @@ export function Filmstrip({
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onAdd: () => void;
+  /** Clears the strip and opens the picker, like the old app's "Choose photos". */
+  onNewBatch: () => void;
   onDownloadAll: () => void;
   onClear: () => void;
 }) {
@@ -198,8 +199,8 @@ export function Filmstrip({
             onRemove={() => onRemove(shot.id)}
           />
         ))}
-        {shots.length < maxShots ? (
-          <li className="shrink-0">
+        <li className="shrink-0">
+          {shots.length < maxShots ? (
             <button
               type="button"
               onClick={onAdd}
@@ -208,13 +209,24 @@ export function Filmstrip({
               <Plus className="h-4 w-4" />
               <span className="text-[0.6875rem] font-medium">Add photos</span>
             </button>
-          </li>
-        ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={onNewBatch}
+              disabled={locked}
+              title="Clear these photos and choose new ones"
+              className="flex h-[4.5rem] w-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-rim-strong text-haze transition-colors hover:border-reef/60 hover:text-pearl disabled:opacity-40"
+            >
+              <ImagePlus className="h-4 w-4" />
+              <span className="text-[0.6875rem] font-medium">New batch</span>
+            </button>
+          )}
+        </li>
       </ol>
 
       {finishedCount ? (
         <p className="mt-2 text-xs text-dim">
-          Renders are kept for about an hour. Download the ones you want to keep.
+          Renders stay here until you close or reload this page. Download the ones you want to keep.
         </p>
       ) : null}
     </section>

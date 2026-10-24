@@ -13,6 +13,7 @@
  */
 
 import { Pool, type QueryResultRow } from "pg";
+import { CREDIT_TIMEZONE } from "@/lib/credit-clock";
 
 export const DEFAULT_DAILY_CREDITS = 20;
 
@@ -101,6 +102,7 @@ const SCHEMA = `
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
   CREATE INDEX IF NOT EXISTS render_log_created_at ON render_log (created_at DESC);
+  CREATE INDEX IF NOT EXISTS render_log_prediction ON render_log (prediction_id);
 `;
 
 function ensureSchema(): Promise<void> {
@@ -171,16 +173,16 @@ async function refresh(username: string): Promise<Usage | null> {
   const rows = await query<Row>(
     `
     INSERT INTO user_tracking (username, credits, last_credit_refresh)
-    VALUES ($1, $2, CURRENT_DATE)
+    VALUES ($1, $2, (NOW() AT TIME ZONE $3)::date)
     ON CONFLICT (username) DO UPDATE SET
       credits = CASE
         WHEN user_tracking.last_credit_refresh IS NULL
-          OR user_tracking.last_credit_refresh <> CURRENT_DATE
+          OR user_tracking.last_credit_refresh <> (NOW() AT TIME ZONE $3)::date
         THEN $2 ELSE user_tracking.credits END,
-      last_credit_refresh = CURRENT_DATE
+      last_credit_refresh = (NOW() AT TIME ZONE $3)::date
     RETURNING *;
     `,
-    [username, dailyCredits()]
+    [username, dailyCredits(), CREDIT_TIMEZONE]
   );
   return rows[0] ? toUsage(rows[0]) : null;
 }
@@ -261,10 +263,12 @@ export async function refundCredit(username: string): Promise<void> {
   if (!trackingEnabled()) return;
   try {
     await query(
+      // Capped at the allowance: a refund that lands after the midnight reset
+      // shouldn't leave anyone with more than a full day's renders.
       `UPDATE user_tracking
-       SET credits = credits + 1, stylizations = GREATEST(stylizations - 1, 0)
+       SET credits = LEAST(credits + 1, $2), stylizations = GREATEST(stylizations - 1, 0)
        WHERE username = $1`,
-      [username]
+      [username, dailyCredits()]
     );
   } catch (error) {
     console.error("[usage] refundCredit failed:", (error as Error).message);
@@ -344,7 +348,8 @@ export type RenderLogEntry = {
   username: string;
   finish: string;
   fix: string | null;
-  status: "done" | "failed";
+  /** "started" until the browser collects the result; it stays that way if nobody does. */
+  status: "done" | "failed" | "started";
   seconds: number | null;
   error: string | null;
   predictionId: string | null;
@@ -369,7 +374,7 @@ function toEntry(row: RenderRow): RenderLogEntry {
     username: row.username,
     finish: row.finish,
     fix: row.fix,
-    status: row.status === "done" ? "done" : "failed",
+    status: row.status === "done" || row.status === "started" ? row.status : "failed",
     seconds: row.seconds === null ? null : Number(row.seconds),
     error: row.error,
     predictionId: row.prediction_id,
@@ -408,6 +413,84 @@ export async function logRender(entry: {
 }
 
 /** The most recent render attempts, newest first. */
+/**
+ * Records a render the moment Replicate accepts it, so the log shows renders
+ * that were started but never collected (a closed tab, say) as well as
+ * finished ones.
+ */
+export async function logRenderStart(entry: {
+  username: string;
+  finish: string;
+  fix: string | null;
+  predictionId: string;
+}): Promise<void> {
+  if (!trackingEnabled()) return;
+  try {
+    await query(
+      `INSERT INTO render_log (username, finish, fix, status, prediction_id)
+       VALUES ($1, $2, $3, 'started', $4)`,
+      [entry.username, entry.finish, entry.fix, entry.predictionId]
+    );
+  } catch (error) {
+    console.error("[usage] logRenderStart failed:", (error as Error).message);
+  }
+}
+
+export type Settlement = {
+  /** This call settled the render; only it may refund. */
+  first: boolean;
+  /** How an earlier call settled it, when this one didn't. */
+  previous: "done" | "failed" | null;
+};
+
+/**
+ * Marks a started render as done or failed. `first` is true only for the call
+ * that actually settled it, so a result collected twice (two polls racing, or
+ * a retry after a dropped connection) is logged and refunded once. Without a
+ * database there's nothing to double-count, so `first` is true; if the
+ * database errors, it's false, so nothing is refunded on a guess.
+ */
+export async function settleRender(entry: {
+  username: string;
+  finish: string;
+  fix: string | null;
+  predictionId: string;
+  status: "done" | "failed";
+  seconds: number;
+  error?: string | null;
+}): Promise<Settlement> {
+  if (!trackingEnabled()) return { first: true, previous: null };
+  const seconds = Math.round(entry.seconds * 10) / 10;
+  const error = entry.error ? entry.error.slice(0, 300) : null;
+  try {
+    const updated = await query<{ id: number }>(
+      `UPDATE render_log SET status = $2, seconds = $3, error = $4
+       WHERE prediction_id = $1 AND status = 'started'
+       RETURNING id`,
+      [entry.predictionId, entry.status, seconds, error]
+    );
+    if (updated.length) return { first: true, previous: null };
+    // No open row. Either it's already settled, or the start was never logged.
+    const existing = await query<{ status: string }>(
+      "SELECT status FROM render_log WHERE prediction_id = $1 LIMIT 1",
+      [entry.predictionId]
+    );
+    if (existing.length) {
+      const previous = existing[0].status === "done" ? "done" : "failed";
+      return { first: false, previous };
+    }
+    await query(
+      `INSERT INTO render_log (username, finish, fix, status, seconds, error, prediction_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [entry.username, entry.finish, entry.fix, entry.status, seconds, error, entry.predictionId]
+    );
+    return { first: true, previous: null };
+  } catch (error) {
+    console.error("[usage] settleRender failed:", (error as Error).message);
+    return { first: false, previous: null };
+  }
+}
+
 export async function recentRenders(limit = 50): Promise<RenderLogEntry[]> {
   if (!trackingEnabled()) return [];
   try {
@@ -458,7 +541,7 @@ export async function renderBreakdown(days = 30): Promise<RenderBreakdown[]> {
     }>(
       `SELECT finish, fix,
               COUNT(*) FILTER (WHERE status = 'done')   AS done,
-              COUNT(*) FILTER (WHERE status <> 'done')  AS failed,
+              COUNT(*) FILTER (WHERE status = 'failed') AS failed,
               AVG(seconds) FILTER (WHERE status = 'done') AS avg_seconds
        FROM render_log
        WHERE created_at >= NOW() - ($1 || ' days')::interval

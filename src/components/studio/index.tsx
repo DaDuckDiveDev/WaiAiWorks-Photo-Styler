@@ -12,7 +12,8 @@ import {
   type FixId,
   type Recipe,
 } from "@/lib/catalog";
-import { prepareImage } from "@/lib/image";
+import { RESET_LABEL } from "@/lib/credit-clock";
+import { prepareImage, type PreparedImage } from "@/lib/image";
 import { Elapsed, Spinner, useModKey } from "./bits";
 import { HelpModal, SupportModal, type SupportRequest } from "./dialogs";
 import { Filmstrip, VersionBar } from "./filmstrip";
@@ -22,6 +23,7 @@ import {
   downloadHref,
   downloadName,
   newId,
+  noteDownloads,
   planRender,
   type Batch,
   type RenderPlan,
@@ -33,15 +35,38 @@ import {
 import { Viewer } from "./viewer";
 
 const MAX_SHOTS = 5;
+/** First check comes quickly: most renders finish in under ten seconds. */
+const POLL_FIRST_MS = 2500;
+const POLL_MS = 2000;
+/** After this the server is told to cancel the render and return the credit. */
+const GIVE_UP_MS = 6 * 60_000;
+/**
+ * How long polls may keep failing in a row before the studio stops asking.
+ * Counted from the first failure, not from the start of the render, so a phone
+ * that slept for an hour still gets two minutes to reconnect when it wakes.
+ */
+const OUTAGE_MS = 2 * 60_000;
 const PREFS_KEY = "kaiel-styler:prefs";
 const REVEAL_DWELL_MS = 2600;
 
-type Outcome = "done" | "failed" | "exhausted" | "throttled" | "signed-out";
+type Outcome = "done" | "failed" | "exhausted" | "throttled" | "unavailable" | "signed-out";
+
+/** What /api/stylize answers, to a start or to a poll. */
+type RenderReply = {
+  status?: "processing" | "done" | "failed";
+  url?: string;
+  ticket?: string;
+  error?: string;
+  credits?: number | null;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 type Toast = {
   id: number;
   message: string;
   tone: "info" | "warn";
-  action?: { label: string; href: string };
+  /** A link, or a button that runs `onClick`. */
+  action?: { label: string; href?: string; newTab?: boolean; onClick?: () => void };
 };
 
 export function Studio({
@@ -155,7 +180,12 @@ export function Studio({
 
   /* ---- photos ---- */
 
-  const chooseFiles = useCallback(() => inputRef.current?.click(), []);
+  /** Set by "New batch": the next pick replaces the strip instead of adding to it. */
+  const replaceOnPick = useRef(false);
+  const chooseFiles = useCallback(() => {
+    replaceOnPick.current = false;
+    inputRef.current?.click();
+  }, []);
 
   const addFiles = useCallback(
     async (files: File[]) => {
@@ -167,13 +197,41 @@ export function Studio({
 
       const room = MAX_SHOTS - shotCount.current - pendingCount.current;
       if (room <= 0) {
-        notify(`A batch holds ${MAX_SHOTS} photos. Remove one to add another.`, "warn");
+        // Like the old app's "Choose photos": offer to swap the whole batch
+        // for the new photos, but only on request, so no render is lost.
+        if (batchRef.current) {
+          notify(`A batch holds ${MAX_SHOTS} photos. Wait for this one to finish rendering.`, "warn");
+          return;
+        }
+        if (pendingCount.current) {
+          notify(`A batch holds ${MAX_SHOTS} photos. Remove one to add another.`, "warn");
+          return;
+        }
+        notify(`A batch holds ${MAX_SHOTS} photos.`, "warn", {
+          label: "Start a new batch",
+          onClick: () => {
+            setToast(null);
+            // A render may have started since the toast appeared.
+            if (batchRef.current || !confirmFreshStartRef.current()) return;
+            resetStripRef.current();
+            void addFilesRef.current(images.slice(0, MAX_SHOTS));
+          },
+        });
         return;
       }
 
       const accepted = images.slice(0, room);
       pendingCount.current += accepted.length;
-      const results = await Promise.allSettled(accepted.map((file) => prepareImage(file)));
+      // One at a time: five full-size phone photos decoded at once can run an
+      // older iPhone out of memory and reload the tab.
+      const results: PromiseSettledResult<PreparedImage>[] = [];
+      for (const file of accepted) {
+        try {
+          results.push({ status: "fulfilled", value: await prepareImage(file) });
+        } catch (reason) {
+          results.push({ status: "rejected", reason });
+        }
+      }
       pendingCount.current -= accepted.length;
       const prepared = results.flatMap((result) =>
         result.status === "fulfilled" ? [result.value] : []
@@ -205,6 +263,15 @@ export function Studio({
     [notify]
   );
 
+  // The toast's "Start a new batch" runs later, so it reaches these through refs.
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
+  const resetStripRef = useRef(() => {});
+  const confirmFreshStartRef = useRef<() => boolean>(() => true);
+  /** The strip as last rendered, so a batch never starts on photos removed meanwhile. */
+  const shotsRef = useRef(shots);
+  shotsRef.current = shots;
+
   const selectShot = useCallback((id: string) => {
     if (batchRef.current) followRef.current = false;
     setSelectedId(id);
@@ -226,6 +293,45 @@ export function Studio({
     setSelectedId(null);
     if (inputRef.current) inputRef.current.value = "";
   }
+  resetStripRef.current = clearAll;
+
+  /**
+   * Renders live only in this tab, so starting over asks first when any of
+   * them haven't been downloaded yet.
+   */
+  function confirmFreshStart(): boolean {
+    const unsaved = finished.filter(({ version }) => !version.downloaded).length;
+    if (!unsaved) return true;
+    return window.confirm(
+      unsaved === 1
+        ? "Start a new batch? 1 render hasn't been downloaded and will be cleared."
+        : `Start a new batch? ${unsaved} renders haven't been downloaded and will be cleared.`
+    );
+  }
+  confirmFreshStartRef.current = confirmFreshStart;
+
+  /** Like the old app's "Choose photos": the photos picked replace this batch. */
+  function newBatch() {
+    if (batchRef.current || !confirmFreshStart()) return;
+    replaceOnPick.current = true;
+    inputRef.current?.click();
+  }
+
+  const markDownloaded = useCallback((versionIds: string[]) => {
+    const ids = new Set(versionIds);
+    setShots((current) =>
+      current.map((shot) =>
+        shot.versions.some((version) => ids.has(version.id))
+          ? {
+              ...shot,
+              versions: shot.versions.map((version) =>
+                ids.has(version.id) ? { ...version, downloaded: true } : version
+              ),
+            }
+          : shot
+      )
+    );
+  }, []);
 
   /* ---- rendering ---- */
 
@@ -262,9 +368,21 @@ export function Studio({
     );
   }, []);
 
+  /**
+   * Renders one photo: start it, then poll until it lands. Polling instead of
+   * holding one long request means a phone that locks mid-render, a hiccup on
+   * the network, or a proxy that cuts slow requests can't lose the result.
+   * The next poll after the page wakes up collects it.
+   */
   const runVersion = useCallback(
     async (shotId: string, versionId: string, chosen: Recipe, image: string): Promise<Outcome> => {
-      patchVersion(shotId, versionId, { status: "working", startedAt: Date.now() });
+      const startedAt = Date.now();
+      patchVersion(shotId, versionId, { status: "working", startedAt });
+
+      const fail = (error: string): Outcome => {
+        patchVersion(shotId, versionId, { status: "error", error, finishedAt: Date.now() });
+        return "failed";
+      };
 
       let response: Response;
       try {
@@ -274,49 +392,83 @@ export function Studio({
           body: JSON.stringify({ image, finish: chosen.finish, fix: chosen.fix }),
         });
       } catch {
-        patchVersion(shotId, versionId, {
-          status: "error",
-          error: "Couldn't reach the studio. Check your connection and try again.",
-          finishedAt: Date.now(),
-        });
-        return "failed";
+        return fail("Couldn't reach the studio. Check your connection and try again.");
       }
 
-      // A proxy timeout can answer with HTML, so don't assume JSON.
-      const data = (await response.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-        credits?: number | null;
-      };
+      // A proxy error can answer with HTML, so don't assume JSON.
+      let data = (await response.json().catch(() => ({}))) as RenderReply;
 
       // The server is the source of truth on the balance, including refunds.
       if (typeof data.credits === "number") setCredits(data.credits);
 
-      if (!response.ok || !data.url) {
-        patchVersion(shotId, versionId, {
-          status: "error",
-          error:
-            data.error ??
+      if (!response.ok) {
+        fail(
+          data.error ??
             (response.status === 504
-              ? "The render took too long to come back. Try again."
-              : `The render failed (${response.status}). Try again.`),
-          finishedAt: Date.now(),
-        });
+              ? "The studio took too long to answer. Try again."
+              : `The render failed (${response.status}). Try again.`)
+        );
         if (response.status === 401) return "signed-out";
-        // 402 is the daily allowance running out; 429 is the burst guard.
+        // 402 is the daily allowance running out; 429 is the burst guard;
+        // 503 is Replicate itself refusing (rate limit, no credit), which
+        // would fail every remaining photo the same way.
         if (response.status === 402) return "exhausted";
         if (response.status === 429) return "throttled";
+        if (response.status === 503) return "unavailable";
         return "failed";
       }
 
-      patchVersion(shotId, versionId, { status: "done", url: data.url, finishedAt: Date.now() });
-      return "done";
+      const ticket = data.ticket;
+      let polls = 0;
+      let failingSince: number | null = null;
+      while (data.status === "processing" && ticket) {
+        polls += 1;
+        await sleep(polls === 1 ? POLL_FIRST_MS : POLL_MS);
+        const giveUp = Date.now() - startedAt > GIVE_UP_MS;
+        let next: RenderReply | null = null;
+        let status = 0;
+        try {
+          const poll = await fetch(
+            `/api/stylize?ticket=${encodeURIComponent(ticket)}${giveUp ? "&giveup=1" : ""}`,
+            { cache: "no-store" }
+          );
+          status = poll.status;
+          next = (await poll.json().catch(() => null)) as RenderReply | null;
+        } catch {
+          // Offline, or the page was asleep; handled below.
+        }
+        if (status === 401) {
+          fail("Your session expired before this render came back. Sign in again.");
+          return "signed-out";
+        }
+        if (!next || (status >= 500 && next.status !== "failed")) {
+          // A hiccup between here and the server: keep asking for a while.
+          failingSince ??= Date.now();
+          if (Date.now() - failingSince > OUTAGE_MS) {
+            return fail("Lost the connection while this photo was rendering. Try again.");
+          }
+          continue;
+        }
+        failingSince = null;
+        data = next;
+        if (typeof data.credits === "number") setCredits(data.credits);
+      }
+
+      if (data.status === "done" && data.url) {
+        patchVersion(shotId, versionId, { status: "done", url: data.url, finishedAt: Date.now() });
+        return "done";
+      }
+      return fail(data.error ?? "The render failed. Try again.");
     },
     [patchVersion]
   );
 
   const runBatch = useCallback(
-    async (targets: Shot[], chosen: Recipe) => {
+    async (requested: Shot[], chosen: Recipe) => {
+      // Photos removed while the start was pending (a credit check, say) are skipped.
+      const targets = requested.filter((shot) =>
+        shotsRef.current.some((current) => current.id === shot.id)
+      );
       if (batchRef.current || !targets.length) return;
 
       const jobs = targets.map((shot) => ({ shotId: shot.id, versionId: newId() }));
@@ -339,7 +491,7 @@ export function Studio({
 
       // Sequential on purpose: keeps Replicate concurrency predictable and lets
       // each result land on its photo as it finishes.
-      let stopped: "user" | "exhausted" | "throttled" | "signed-out" | null = null;
+      let stopped: Exclude<Outcome, "done" | "failed"> | "user" | null = null;
       for (let index = 0; index < jobs.length; index += 1) {
         const job = jobs[index];
         if (stopRef.current) {
@@ -361,7 +513,7 @@ export function Studio({
         const outcome = await runVersion(job.shotId, job.versionId, chosen, shot.dataUrl);
         setBatch((current) => (current ? { ...current, done: current.done + 1 } : current));
 
-        if (outcome === "exhausted" || outcome === "throttled" || outcome === "signed-out") {
+        if (outcome !== "done" && outcome !== "failed") {
           stopped = outcome;
           dropVersions(jobs.slice(index + 1).map((rest) => rest.versionId));
           break;
@@ -372,13 +524,16 @@ export function Studio({
       setBatch(null);
 
       if (stopped === "exhausted") {
-        notify("Stopped early: no renders left for today. They reset at midnight UTC.", "warn");
+        notify(`Stopped early: no renders left for today. They reset at ${RESET_LABEL}.`, "warn");
       } else if (stopped === "throttled") {
         notify("Paused: too many renders in the last minute. Wait a moment, then render again.", "warn");
+      } else if (stopped === "unavailable") {
+        notify("Stopped: Replicate isn't taking renders right now, so the rest of the batch wasn't sent.", "warn");
       } else if (stopped === "signed-out") {
-        notify("Your session expired, so the batch stopped.", "warn", {
+        notify("Your session expired, so the batch stopped. Your renders here are safe.", "warn", {
           label: "Sign in again",
           href: "/login",
+          newTab: true,
         });
       } else if (stopped === "user") {
         notify("Batch stopped. Photos that hadn't started weren't charged.");
@@ -389,7 +544,7 @@ export function Studio({
 
   /**
    * True if a render may start. A zero balance is re-checked with the server
-   * first: the allowance resets at midnight UTC while the tab may stay open.
+   * first: the allowance resets at midnight while the tab may stay open.
    */
   const hasCredit = useCallback(async (): Promise<boolean> => {
     if (credits === null || credits > 0) return true;
@@ -405,7 +560,7 @@ export function Studio({
     }
     setCredits(balance);
     if (balance !== null && balance <= 0) {
-      notify("No renders left for today. They reset at midnight UTC.", "warn");
+      notify(`No renders left for today. They reset at ${RESET_LABEL}.`, "warn");
       return false;
     }
     return true;
@@ -420,6 +575,11 @@ export function Studio({
     const targets = plan.targets;
     const chosen = recipe;
     if (!(await hasCredit())) return;
+    // On a phone the picker sits below the photo; bring the photo back into
+    // view so the render can be watched.
+    if (window.matchMedia("(max-width: 1023px)").matches && window.scrollY > 80) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     void runBatch(targets, chosen);
   }, [chooseFiles, hasCredit, plan, recipe, runBatch, shots.length]);
 
@@ -463,6 +623,8 @@ export function Studio({
         link.remove();
       }, order * 700);
     });
+    noteDownloads(finished.map(({ version }) => version.url));
+    markDownloaded(finished.map(({ version }) => version.id));
   }
 
   /* ---- leaving mid-batch ---- */
@@ -643,6 +805,7 @@ export function Studio({
                   )
                 )
               }
+              onDownloaded={markDownloaded}
               onReport={report}
             />
           ) : null}
@@ -657,6 +820,7 @@ export function Studio({
               onSelect={selectShot}
               onRemove={removeShot}
               onAdd={chooseFiles}
+              onNewBatch={newBatch}
               onDownloadAll={downloadAll}
               onClear={clearAll}
             />
@@ -689,7 +853,12 @@ export function Studio({
         multiple
         hidden
         onChange={(event) => {
-          void addFiles(Array.from(event.target.files ?? []));
+          const files = Array.from(event.target.files ?? []);
+          // Only a pick that actually chose photos replaces the batch;
+          // cancelling the picker leaves everything as it was.
+          if (replaceOnPick.current && files.length) clearAll();
+          replaceOnPick.current = false;
+          void addFiles(files);
           event.target.value = "";
         }}
       />
@@ -713,10 +882,24 @@ export function Studio({
               }`}
             >
               <p>{toast.message}</p>
-              {toast.action ? (
-                <a href={toast.action.href} className="shrink-0 font-semibold text-reef hover:underline">
+              {toast.action?.href ? (
+                <a
+                  href={toast.action.href}
+                  // Signing in from a new tab leaves this tab's renders in place.
+                  target={toast.action.newTab ? "_blank" : undefined}
+                  rel={toast.action.newTab ? "noopener" : undefined}
+                  className="shrink-0 font-semibold text-reef hover:underline"
+                >
                   {toast.action.label}
                 </a>
+              ) : toast.action?.onClick ? (
+                <button
+                  type="button"
+                  onClick={toast.action.onClick}
+                  className="shrink-0 font-semibold text-reef hover:underline"
+                >
+                  {toast.action.label}
+                </button>
               ) : null}
               <button
                 type="button"
@@ -750,7 +933,7 @@ function CreditMeter({ credits, allowance }: { credits: number; allowance: numbe
   return (
     <div
       className="mr-1 flex items-center gap-2.5 sm:mr-2"
-      title="Renders left today. The count resets at midnight UTC."
+      title={`Renders left today. The count resets at ${RESET_LABEL}.`}
     >
       <span className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-shelf sm:block">
         <span

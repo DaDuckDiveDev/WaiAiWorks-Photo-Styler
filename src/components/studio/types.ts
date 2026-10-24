@@ -13,6 +13,8 @@ export type Version = {
   error?: string;
   startedAt?: number;
   finishedAt?: number;
+  /** Saved to the device at least once, so clearing it loses nothing. */
+  downloaded?: boolean;
 };
 
 export type Shot = PreparedImage & {
@@ -94,8 +96,10 @@ export function downloadName(shotIndex: number, version: Version): string {
 }
 
 /**
- * Replicate URLs go through /api/download so the file arrives with a proper
- * name. Anything else (a data: URI from a local mock) is used as-is.
+ * Renders normally arrive as data: URIs (the server keeps a copy, since
+ * Replicate deletes its own after an hour) and download straight from the
+ * page. A Replicate link, the fallback when that copy failed, goes through
+ * /api/download so the file arrives with a proper name.
  */
 export function downloadHref(url: string, name: string): string {
   if (!url.startsWith("https://")) return url;
@@ -107,4 +111,19 @@ export function formatElapsed(ms: number): string {
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Counts downloads that happen in the browser (data: URIs never reach
+ * /api/download, which counts its own). Best effort; never blocks the save.
+ */
+export function noteDownloads(urls: (string | undefined)[]): void {
+  const local = urls.filter((url) => url && !url.startsWith("https://")).length;
+  if (!local) return;
+  void fetch("/api/usage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event: "download", count: local }),
+    keepalive: true,
+  }).catch(() => undefined);
 }

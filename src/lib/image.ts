@@ -48,6 +48,9 @@ function encode(source: HTMLImageElement, longEdge: number) {
   canvas.height = height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Your browser blocked image processing.");
+  // JPEG has no transparency: without this, a transparent PNG turns black.
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
   context.drawImage(source, 0, 0, width, height);
 
   let dataUrl = "";

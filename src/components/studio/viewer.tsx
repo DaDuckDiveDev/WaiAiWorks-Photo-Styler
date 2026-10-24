@@ -340,14 +340,18 @@ function Compare({
         src={original}
         alt={`${name}, original`}
         draggable={false}
-        className={`block w-auto max-w-full rounded-md object-contain ${PHOTO_SIZE}`}
+        className={`block w-auto max-w-full rounded-md object-contain ${PHOTO_SIZE} ${
+          viewMode === "result" ? "invisible" : ""
+        }`}
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={result}
         alt={`${name}, ${resultLabel} render`}
         draggable={false}
-        className="compare-result rounded-md"
+        // The model can return a slightly different aspect ratio. Compare lines
+        // the two up; the Render view shows the whole render, uncropped.
+        className={`compare-result rounded-md ${viewMode === "result" ? "compare-result-whole" : ""}`}
       />
 
       {comparing ? (

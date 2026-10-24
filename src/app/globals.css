@@ -378,6 +378,11 @@
     clip-path: inset(0 0 0 var(--split));
   }
 
+  .compare-result-whole {
+    object-fit: contain;
+    clip-path: none;
+  }
+
   .compare-line {
     position: absolute;
     top: 0;

@@ -5,6 +5,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import { SESSION_COOKIE, isAdmin, verifySession } from "@/lib/auth";
 import { LogoMark } from "@/components/logo-mark";
 import { parseRecipe, recipeLabel } from "@/lib/catalog";
+import { RESET_LABEL } from "@/lib/credit-clock";
 import {
   dailyCredits,
   databaseStatus,
@@ -104,7 +105,7 @@ export default async function StatsPage() {
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-haze">
           Every account, with lifetime counters and today&rsquo;s remaining
           balance. Credits reset to {dailyCredits()} on each user&rsquo;s first
-          request after midnight UTC.
+          request after {RESET_LABEL}.
         </p>
       </div>
 
@@ -336,6 +337,17 @@ function RenderSections({
                       <td className="px-4 py-3.5">
                         {entry.status === "done" ? (
                           <span className="text-seaglass">Finished</span>
+                        ) : entry.status === "started" ? (
+                          <span className="text-haze">
+                            {Date.now() - new Date(entry.createdAt).getTime() < 15 * 60_000
+                              ? "Rendering"
+                              : "Not collected"}
+                            <span className="mt-0.5 block max-w-xs text-xs text-dim">
+                              {Date.now() - new Date(entry.createdAt).getTime() < 15 * 60_000
+                                ? "Still in progress."
+                                : "Started, but the page closed before the result came back."}
+                            </span>
+                          </span>
                         ) : (
                           <span className="text-coral">
                             Failed
